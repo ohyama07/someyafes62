@@ -1,0 +1,27 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>定員追加</title>
+</head>
+
+<body>
+    <p>出場処理をしなかった人の存在などの諸事情で現在は入れる人数とデータ上での入れる人数が<br>長時間一致しない場合の応急処置としてこのボタンを押してください</p>
+    <button type="button" id="add" name="add">定員を追加</button>
+    <button type="button" id="backpage" name="backpage">入場処理ページに戻る</button>
+    <script>
+        let addCapacity = document.querySelector("#add");
+        let confirm = document.querySelector("#confirm");
+        addCapacity.addEventListener('click', () => {
+            window.location.href = 'addCapacity.php';
+        });
+        let backpage = document.querySelector("#backpage");
+        backpage.addEventListener('click', () => {
+            window.location.href = 'enter.html';
+        })
+    </script>
+</body>
+</html>
