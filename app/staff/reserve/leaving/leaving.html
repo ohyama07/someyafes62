@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
     <title>出場</title>
 </head>
@@ -56,14 +57,15 @@
 
 
 
-        // QRコードの検出
-        const rectCvs = document.getElementById('rect-canvas');
+         // QRコードの検出
+         const rectCvs = document.getElementById('rect-canvas');
         const rectCtx = rectCvs.getContext('2d');
         let qrFlag = false;
 
         let resultForm = document.getElementById('resultForm');
         resultForm.addEventListener('submit', function (event) {
             let userid = document.getElementById('userid');
+            userid.classList.add('hidden');//ADD 16日　送信する中身を見えなくした
             if (!qrFlag) {
                 while (userid.value.length < 17) {
                     userid.value += "0";
@@ -71,11 +73,12 @@
                 qrFlag = true;
             } else if (userid.value.length >= 17) {
                 qrFlag = true;
-            } else {
                 resultForm.submit();
+
+
+            } else {
             }
         });
-
 
 
 
@@ -87,8 +90,9 @@
             if (code) {
                 document.getElementById('search').value = "見つかりました";
                 drawRect(code.location);
-                userid = code.data;
+                userid.value = code.data;
                 qrFlag = true;
+                resultForm.submit();
             } else {
                 document.getElementById('search').value = "見つかりません";
                 rectCtx.clearRect(0, 0, contentWidth, contentHeight);

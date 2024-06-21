@@ -1,11 +1,43 @@
 <?php
 include 'qrcode.php';
+require_once 'config.php';
+
+
+
+$today = strtotime("now");
+$today = dechex($today);
+$hash = hash('CRC32', $today);
+$userid = '0'.hash('CRC32', $today . $hash) . $today;
+
+session_start();
+$_SESSION['userid'] = $userid;
+session_write_close();
+
+
+try {
+    $pdo = new PDO($dsn, $user, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $stmt = $pdo->prepare("INSERT INTO usersid (userid) VALUES (:userid)");
+    $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
+    $stmt->execute();
+
+} catch (PDOException $e) {
+    echo $e->getMessage();
+    exit;
+}
+
+$stmt = $pdo->prepare("SELECT id FROM usersid WHERE userid = :userid");
+$stmt->bindValue(':userid', $userid);
+$stmt->execute();
+$seeable_id = $stmt->fetch(PDO::FETCH_ASSOC);
+
 ?>
 <!DOCTYPE html>
 <html lang="ja">
 
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>making_qrcode</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.js"></script>
 </head>
@@ -96,6 +128,14 @@ include 'qrcode.php';
         @media (max-width: 500px) {}
         /*FIXME ここ中途半端 */
     </style>
+    <?php
+    echo "3秒後にリダイレクトします";
+    echo '<script>
+    setTimeout(function(){
+        window.location.href = "../../main/index.php";
+    }, 1500);
+    </script>';
+    ?>
 </body>
 
 </html>

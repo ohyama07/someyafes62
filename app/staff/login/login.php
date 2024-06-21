@@ -1,9 +1,9 @@
 <?php
 require_once 'config.php';
 
+
+
 $err = '';
-$errorpsw = "パスワードが違います";
-$errorclass = "クラスが違います";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
@@ -13,12 +13,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo $e->getMessage();
     }
 
-    session_start();
-    $userid = $_POST['userid'];
+
+    $class = $_POST['userid'];
     $password = $_POST['password'];
 
-    $stmt = $pdo->prepare('SELECT * FROM users WHERE userid = :userid');
-    $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
+    $stmt = $pdo->prepare('SELECT * FROM users WHERE userid = :class');
+    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
     $stmt->execute();
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -32,11 +32,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     } else {
 
-        $_SESSION['userid'] = $row['userid'];
+        // Cookieの設定
+        setcookie("cookie_class", "cookie_password", time() + 36000, "/",'junzs.net', true, true); // 有効期限は10時間後
+        session_start();
+        $_SESSION['class'] = $row['username'];
         $_SESSION['password'] = $row['password'];
+        $_COOKIE['cookie_class'] = $_SESSION['class'];
+        session_write_close();
 
-        header('Location: ./', 303);
-        echo "ログイン成功";
+        header('Location: index.php');
         exit();
 
     }
@@ -111,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 
 <body>
-    <form action="" method="POST" id="submit">
+    <form action="login.php" method="POST" id="submit">
         <h1>ログインページ</h1>
         <?php if ($err) { ?>
             <p class="error"><?= $err ?></p>

@@ -1,12 +1,9 @@
 <?php
-function inRemaining(){
+function inRemaining($class){
 require 'config.php';
-/*
 session_start();
-$class = $_SESSION['class'];  //class = 1年1組など…
-*/
-
-$class = '3年1組';
+$class = $_SESSION['class'];
+session_write_close();
 
 try {
     $pdo = new PDO($dsn, $user, $password);
@@ -24,7 +21,7 @@ try {
     $capacity = $row['capacity'];
 
     $expdo = "SELECT enters.count - permits.count FROM (SELECT COUNT(*)AS count FROM queue WHERE class = :class AND enter IS NOT NULL AND leaving IS NULL) AS enters INNER JOIN (SELECT COUNT(*)AS count FROM queue WHERE class = :class AND enter IS NOT NULL AND permit IS NULL) AS permits ON enters.class = permits.class";
-    //FIXME permitが出場時だと入れるのには入れない時間が発生する。さっきは作業手順逆にしたからpermitが付与されない人が出る事案が発生したけど、出場をしなかった人がいたら0が付与されるまで絶対にpermitが1減った状態になる
+    //permitが出場時だと入れるのには入れない時間が発生する。さっきは作業手順逆にしたからpermitが付与されない人が出る事案が発生したけど、出場をしなかった人がいたら0が付与されるまで絶対にpermitが1減った状態になる
 
     // 入場している数をカウントする　permitも参照しなきゃいけない
     $stmt = $pdo->prepare("SELECT COUNT(*) AS count FROM queue WHERE class = :class AND enter IS NOT NULL AND leaving IS NULL");

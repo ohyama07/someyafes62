@@ -1,6 +1,9 @@
 <?php
 require_once 'config.php';
-$class = '3年1組';//FIXME 応急処置
+
+session_start();
+$class = $_SESSION['class'];
+session_write_close();
 
 try {
     $pdo = new PDO($dsn, $user, $password);

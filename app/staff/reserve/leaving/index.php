@@ -2,63 +2,98 @@
 require_once 'config.php';
 include 'remaining.php';
 
-/*
-$class = $_SESSION['username'];
-*/
-// POSTリクエストからuseridを取得し、存在しない場合はエラーメッセージを表示
-if (!isset($_POST['userid'])) {
-    echo "ユーザーIDが未定義です。";
+session_start();
+if (!isset($_SESSION['class'])) {
+    header('Location: ../../login/login.php');
     exit;
 }
-$userid = $_POST['userid'];
-$class = "3年1組";//暫定的なもの
+$class = $_SESSION['class'];
+session_write_close();
 
-//MEMO 人が確認して値を入れられるようにするのもいいね
+// POSTリクエストからuseridを取得し、存在しない場合はエラーメッセージを表示
+if (!isset($_POST['userid'])) {
+    echo "IDが見つかりません";
+    echo '<script>
+    setTimeout(function(){
+        window.location.href = "leaving.html";
+    }, 1500);
+    </script>';
+    exit;
+} elseif ($_POST['userid'] === "00000000000000000") {
+    echo "idを正しく入力してください";
+    echo '<script>
+    setTimeout(function(){
+        window.location.href = "leaving.html";
+    }, 1500);
+    </script>';
+    exit;
+} else {
+    $userid = $_POST['userid'];
+}
 
 try {
     $pdo = new PDO($dsn, $user, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    
+    // 入場しているが退出していないデータの取得
     $stmt = $pdo->prepare("SELECT * FROM queue WHERE userid = :userid AND class = :class AND leaving IS NULL");
     $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
-    $stmt->bindValue(':class', $class, PDO::PARAM_STR);//classはclassテーブルからIDを取得して入れることにするほうが早いかな
+    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
     $stmt->execute();
     $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $stmt = $pdo->prepare('SELECT enter FROM queue WHERE enter IS NULL AND userid = :userid AND class = :class');
+
+    // 入場処理がされていないデータの取得
+    $stmt = $pdo->prepare("SELECT enter FROM queue WHERE enter IS NULL AND userid = :userid AND class = :class");
     $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
     $stmt->bindValue(':class', $class, PDO::PARAM_STR);
     $stmt->execute();
     $nullEnter = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
     if (empty($result)) {
         echo "予約処理をしてください こちらは出場処理です";
+        echo '<script>
+        setTimeout(function(){
+            window.location.href = "leaving.html";
+        }, 1500);
+        </script>';
+        exit;
     } elseif (!empty($nullEnter)) {
         echo "入場処理をしてください こちらは出場処理です";
+        echo '<script>
+        setTimeout(function(){
+            window.location.href = "leaving.html";
+        }, 1500);
+        </script>';
+        exit;
     } else {
-        //出場処理
-        $stmt = $pdo->prepare("UPDATE queue SET leaving = now() WHERE userid = :userid AND class = :class AND leaving IS NULL AND enter IS NOT NULL");
-        $stmt->bindValue(':userid', $userid);
-        $stmt->bindValue(':class', $class);
+        // 出場処理
+        $stmt = $pdo->prepare("UPDATE queue SET leaving = NOW() WHERE userid = :userid AND class = :class AND leaving IS NULL AND enter IS NOT NULL");
+        $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
+        $stmt->bindValue(':class', $class, PDO::PARAM_STR);
         $stmt->execute();
         echo "ありがとうございました";
+        echo '<script>
+        setTimeout(function(){
+            window.location.href = "leaving.html";
+        }, 1500);
+        </script>';
     }
 
+    // 残りの処理
+    $remaining = inRemaining($class);
+    $stmt = $pdo->prepare('UPDATE queue SET permit = NOW() WHERE class = :class AND permit IS NULL AND enter IS NULL ORDER BY start ASC LIMIT ' . (int)$remaining);
+    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+    $stmt->execute();
+
 } catch (PDOException $e) {
-    echo $e->getMessage();
+    echo "エラー: " . $e->getMessage();
     exit;
 }
 
-try {//ADD 13日
-    $remaining = inRemaining();
-    $stmt = $pdo->prepare('UPDATE queue SET permit = NOW() WHERE class = :class AND permit IS NULL AND enter IS NULL ORDER BY start ASC LIMIT :remaining');
-    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
-    $stmt->bindValue(':remaining', $remaining, PDO::PARAM_INT);
-    $stmt->execute();
-} catch (PDOException $e) {
-    echo $e->getMessage();
-    exit;
-}
 echo "<br>3秒後に元のページに戻ります";
 echo '<script>
         setTimeout(function(){
-            window.location.href = "http://localhost/someyasai/app/reserve/leaving/leaving.html";
+            window.location.href = "leaving.html";
         }, 3000);
-        </script>';//FIXME 本番とは違うアドレス注意
+        </script>';
+?>

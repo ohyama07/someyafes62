@@ -2,39 +2,43 @@
 require 'config.php';
 include 'remaining.php';
 include 'limited_records.php';
+include '../../waittime/index.php';
 
 $already = true;//MEMO 既にカラムがありますよってこと
-$remaining = inRemaining();
-$limits = inLimited($pdo);
 
-
-/*
-$class = $_SESSION['class'];　
-*/
+session_start();
+if (!isset($_SESSION['class'])) {
+    header('Location: ../../login/login.php');
+    exit;
+}
+$class = $_SESSION['class'];
+session_write_close();
 // POSTリクエストからuseridを取得し、存在しない場合はエラーメッセージを表示
-if (empty($_POST['userid'])) {
+if (!isset($_POST['userid'])) {
     echo "IDが見つかりません";
     echo '<script>
     setTimeout(function(){
-        window.location.href = "http://localhost/someyasai/app/staff/reserve/enter/enter.html";
+        window.location.href = "enter.html";
     }, 1500);
-    </script>';//FIXME 本番とは違うアドレス注意
+    </script>';
     exit;
 } elseif ($_POST['userid'] === "00000000000000000") {
     echo "idを正しく入力してください";
     echo '<script>
     setTimeout(function(){
-        window.location.href = "http://localhost/someyasai/app/staff/reserve/enter/enter.html";
+        window.location.href = "enter.html";
     }, 1500);
     </script>';
     exit;
-}
+} else {
 $userid = $_POST['userid'];
-$class = "3年1組";//FIXME 暫定的なもの
+}
 
 try {
     $pdo = new PDO($dsn, $user, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $remaining = inRemaining($class);
+    $limits = inLimited($pdo, $class);
     $stmt = $pdo->prepare('SELECT class FROM queue WHERE userid = :userid AND class <> :class AND enter IS NULL');
     $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
     $stmt->bindValue('class', $class, PDO::PARAM_STR);
@@ -48,7 +52,7 @@ try {
         $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
         $stmt->bindValue(':remaining', $remaining, PDO::PARAM_INT);
         $stmt->execute();
-        
+
         //2,useridが他と浮気したやつと一致しないかつpermit付与対象でないやつのpermitをNULLにする→permit付与対象を適切にする LIMIT100は大きい値を入れただけ
         //1,2の処理で浮気したやつの次の人にpermitを付与させることを意味する(コンパクトにする方法分からなかったからこんな冗長になってる)
         $stmt = $pdo->prepare('UPDATE queue SET permit = NULL WHERE id IN (SELECT id FROM (SELECT id FROM queue WHERE enter IS NULL AND permit IS NOT NULL AND userid <> :userid ORDER BY start ASC LIMIT 100 OFFSET 2) AS subquery);'); //FIXME OFFSET の後を2じゃなくて適切な値に変更
@@ -80,7 +84,6 @@ try {
 }
 
 
-//FIXME 前の処理がないと困る時➡try catchを使うから、ここもtryで囲む
 
 //③の時
 foreach ($result as $row) {
@@ -89,7 +92,7 @@ foreach ($result as $row) {
         $stmt->bindValue(':userid', $row['userid'], PDO::PARAM_STR);
         $stmt->execute();
     }
-}//MEMO 動く
+}
 $stmt = $pdo->prepare("SELECT * FROM queue WHERE userid = :userid AND class = :class");
 $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
 $stmt->bindValue(':class', $class, PDO::PARAM_STR);
@@ -124,7 +127,8 @@ try {
 }
 
 
-$stmt = $pdo->prepare('SELECT userid FROM queue WHERE start IS NOT NULL AND enter IS NULL ORDER BY start ASC LIMIT :remaining');
+$stmt = $pdo->prepare('SELECT userid FROM queue WHERE class = :class AND start IS NOT NULL AND enter IS NULL ORDER BY start ASC LIMIT :remaining');
+$stmt->bindValue(':class', $class, PDO::PARAM_STR);
 $stmt->bindValue(':remaining', $remaining, PDO::PARAM_INT);
 $stmt->execute();
 $limits_ids = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -132,16 +136,16 @@ $limits_count = count($limits_ids);
 
 $can_enter = false;
 $over_permit = 0;
-//FIXME permitの動きがおかしい ➡治った？あとでやってみる
 
 if ($remaining > 0) {   //許容範囲計算した後の判定
-    $stmt = $pdo->prepare('SELECT COUNT(*) AS count FROM queue WHERE enter IS NULL AND permit < NOW() - INTERVAL 5 MINUTE ');//スキップ対象計算
+    $stmt = $pdo->prepare('SELECT COUNT(*) AS count FROM queue WHERE class = :class AND enter IS NULL AND permit < NOW() - INTERVAL 5 MINUTE ');//スキップ対象計算
+    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
     $stmt->execute();
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     $permit_count = $row['count'];
     $limits_count += $permit_count;
-
-    foreach ($limits_ids as $limit_id) {    //前から許容人数番目(=$limits_count)までにいるかの判定
+    var_dump($remaining, $limits_count);
+    foreach ($limits_ids as $limit_id) {   //前から許容人数番目(=$limits_count)までにいるかの判定
         /*$sql = "UPDATE queue SET permit = NOW() WHERE permit IS NULL";
         $stmt = $pdo->prepare($sql);
         $stmt->execute();*/
@@ -152,6 +156,7 @@ if ($remaining > 0) {   //許容範囲計算した後の判定
     }
 }
 //FIXME permitの代入を適切な方法に変更しております。
+//FIXME 他のクラスだとどっかが動かないから入場させてくれない
 
 
 if ($can_enter) {
@@ -162,17 +167,19 @@ if ($can_enter) {
     echo "入場してください";
 } elseif ($already) {//$already = true ってことは予約処理済かつ入場できないってこと
     echo "まだ入場できません  もう少しお待ちください";//ADD 13日
+    echo "<br>";
+    echo waittimeCal($class, $userid);
 } else {
-    echo "予約しました";
+    echo "予約しました <br>";
+    echo waittimeCal($class, $userid);
 }
 
 echo "<br>3秒後に元のページに戻ります";
 echo '<script>
         setTimeout(function(){
-            window.location.href = "http://localhost/someyasai/app/staff/reserve/enter/enter.html";
+            window.location.href = "enter.html";
         }, 3000);
         </script>';
-//FIXME 本番環境とは異なるアドレス注意
 
 //一般公開終了間近になったら一般客を優先させる処理
 try {

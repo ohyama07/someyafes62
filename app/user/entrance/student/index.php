@@ -6,7 +6,9 @@ $today = strtotime("now");
 $today = dechex($today);
 $hash = hash('CRC32', $today);
 $userid = '1' . hash('CRC32', $today . $hash) . $today;
-
+session_start();
+$_SESSION['userid'] = $userid;
+session_write_close();
 
 try {
     $pdo = new PDO($dsn, $user, $password);
@@ -31,8 +33,21 @@ $seeable_id = $stmt->fetch(PDO::FETCH_ASSOC);
 
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>making_qrcode</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.js"></script>
+    <style>
+        .button {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            padding: 10px;
+            background-color: #f5f5f5;
+            /* 必要に応じて背景色を設定 */
+            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
 </head>
 
 <body>
@@ -46,6 +61,9 @@ $seeable_id = $stmt->fetch(PDO::FETCH_ASSOC);
     <canvas id="qr"></canvas>
     <p id="qrText"></p>
     <div><img id="newImg"></div>
+    </div>
+    <div class="button">
+        <a href="../../main/index.php">メインページへ行く</a>
     </div>
     <script>
         let cookie = document.cookie;
@@ -70,11 +88,34 @@ $seeable_id = $stmt->fetch(PDO::FETCH_ASSOC);
             let cvs = userid;
             let png = cvs.toDataURL();
             document.getElementById("newImg").src = png;
-            /* ローカルストレージに保存
-            localStorage.setItem('query', query);*/
+
+            // PNGをサーバーに送信
+            fetch('save_session.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ png: png })
+            })
+            .then(response => response.text())
+            .then(data => {
+                console.log('Success:', data);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
 
         });
+
     </script>
+    <?php
+    //echo "3秒後にリダイレクトします";
+    /*echo '<script>
+    setTimeout(function(){
+        window.location.href = "../../main/index.php";
+    }, 1500);
+    </script>';*/
+    ?>
     <style>
         /*#qrOutput {
         display: none;
