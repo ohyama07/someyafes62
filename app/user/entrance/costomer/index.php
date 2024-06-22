@@ -1,35 +1,12 @@
 <?php
-include 'qrcode.php';
+include '../../../staff/entrance/idGenerate.php';
 require_once 'config.php';
+list($seeable_id,$userid) = toStudentEntranceId();
 
-
-
-$today = strtotime("now");
-$today = dechex($today);
-$hash = hash('CRC32', $today);
-$userid = '0'.hash('CRC32', $today . $hash) . $today;
-
-session_start();
-$_SESSION['userid'] = $userid;
-session_write_close();
-
-
-try {
-    $pdo = new PDO($dsn, $user, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt = $pdo->prepare("INSERT INTO usersid (userid) VALUES (:userid)");
-    $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
-    $stmt->execute();
-
-} catch (PDOException $e) {
-    echo $e->getMessage();
-    exit;
-}
-
-$stmt = $pdo->prepare("SELECT id FROM usersid WHERE userid = :userid");
-$stmt->bindValue(':userid', $userid);
-$stmt->execute();
-$seeable_id = $stmt->fetch(PDO::FETCH_ASSOC);
+setcookie("userid", $userid, time() + 86400);//有効期限は1日後
+setcookie("seeable_id", $seeable_id, time() + 86400);
+$_COOKIE['userid'] = $userid;
+$_COOKIE['$seeable_id'] = $seeable_id;
 
 ?>
 <!DOCTYPE html>
@@ -55,8 +32,6 @@ $seeable_id = $stmt->fetch(PDO::FETCH_ASSOC);
     <div><img id="newImg"></div>
     </div>
     <script>
-        let qrcode = "<?php makingQrcode() ?>";
-        let cookie = document.cookie;
         let query = 0;
         let userid = "<?php echo $userid ?>";
         document.addEventListener('DOMContentLoaded', () => {
@@ -67,7 +42,7 @@ $seeable_id = $stmt->fetch(PDO::FETCH_ASSOC);
             });
 
             //ID出力用コード
-            document.getElementById('qrText').textContent = `あなたのIDは 0<?php echo $seeable_id['id'] ?> です`;
+            document.getElementById('qrText').textContent = `あなたのIDは <?php echo $seeable_id ?> です`;
             qr.background = '#FFF';
             qr.backgroundAlpha = 0.8;
             qr.foreground = '#000000';

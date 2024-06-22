@@ -16,7 +16,9 @@ try {
 }
 
 try {
-    $stmt = $pdo->prepare('SELECT entering.enter, now() - entering.enter as duration, entering.row_no, waiting.userid FROM (SELECT enter, leaving, ROW_NUMBER() OVER (ORDER BY enter ASC) AS row_no FROM queue WHERE enter IS NOT NULL AND leaving IS NULL) AS entering INNER JOIN (SELECT userid, enter, leaving, ROW_NUMBER() OVER (ORDER BY enter ASC) AS row_no FROM queue WHERE enter IS NULL) AS waiting on entering.row_no = waiting.row_no WHERE userid = :userid');
+    $stmt = $pdo->prepare('SELECT entering.enter, now() - entering.enter as duration, entering.row_no, waiting.userid FROM (SELECT enter, leaving, ROW_NUMBER() OVER (ORDER BY enter ASC) AS row_no FROM queue WHERE enter IS NOT NULL AND leaving IS NULL AND class = :class) AS entering INNER JOIN (SELECT userid, enter, leaving, ROW_NUMBER() OVER (ORDER BY enter ASC) AS row_no FROM queue WHERE enter IS NULL AND class = :class) AS waiting on entering.row_no = waiting.row_no WHERE userid = :userid');//FIXME ここの計算をimestanpdiffを使ったものにする
+    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
     $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
     $stmt->execute();
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -28,11 +30,11 @@ try {
 
 
     
-$stmt= $pdo->prepare('SELECT AVG(leaving - enter) AS avg_waitingtime FROM queue WHERE class = :class AND enter IS NOT NULL AND leaving IS NOT NULL AND leaving <> "1970-01-01 00:00:00" AND leaving - enter <= 900');
+$stmt= $pdo->prepare('SELECT AVG(TIMESTAMPDIFF(SECOND, enter,leaving)) AS avg_waitingtime FROM queue WHERE class = :class AND enter IS NOT NULL AND leaving IS NOT NULL AND leaving <> 0 AND leaving - enter <= 900');
 $stmt->bindValue(':class', $class, PDO::PARAM_STR);
 $stmt->execute();
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
-$avg_waitingtime = (int)($row['avg_waitingtime'] / 60);
+$avg_waitingtime = $row['avg_waitingtime'];
          
 } catch (PDOException $e) {
     echo $e->getMessage();
@@ -40,7 +42,8 @@ $avg_waitingtime = (int)($row['avg_waitingtime'] / 60);
 }
 
 try {
-    $stmt = $pdo->prepare('SELECT COUNT(*) AS count FROM queue WHERE enter IS NULL');
+    $stmt = $pdo->prepare('SELECT COUNT(*) AS count FROM queue WHERE enter IS NULL AND class = :class');
+    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
     $stmt->execute();
     $waits = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 } catch (PDOException $e) {
@@ -57,8 +60,10 @@ try {
             echo "あと{$expect_waittime}分後に入場できる見込みです";
         }
     } else {
-        $expect_waittime = $avg_waitingtime * $waits / $capacity;
+        echo "ここからが本題";
+var_dump($avg_waitingtime, $waits, $capacity);
+        $expect_waittime = $avg_waitingtime * $waits / $capacity / 60;
         $expect_waittime = round($expect_waittime);
-        echo "あと{$expect_waittime}分後に入場できる見込みです";
+        echo "あと{$expect_waittime}分後に入場できる見込みです1";
     }
 }

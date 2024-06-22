@@ -6,13 +6,11 @@ include '../../waittime/index.php';
 
 $already = true;//MEMO 既にカラムがありますよってこと
 
-session_start();
-if (!isset($_SESSION['class'])) {
+if (!isset($_COOKIE['class'])) {
     header('Location: ../../login/login.php');
     exit;
 }
-$class = $_SESSION['class'];
-session_write_close();
+$class = $_COOKIE['class'];
 // POSTリクエストからuseridを取得し、存在しない場合はエラーメッセージを表示
 if (!isset($_POST['userid'])) {
     echo "IDが見つかりません";
@@ -173,13 +171,13 @@ if ($can_enter) {
     echo "予約しました <br>";
     echo waittimeCal($class, $userid);
 }
-
+/*
 echo "<br>3秒後に元のページに戻ります";
 echo '<script>
         setTimeout(function(){
             window.location.href = "enter.html";
         }, 3000);
-        </script>';
+        </script>';*///FIXME あとで
 
 //一般公開終了間近になったら一般客を優先させる処理
 try {

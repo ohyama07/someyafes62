@@ -3,16 +3,15 @@ require 'config.php';
 include 'waittime_cal.php';
 
 
-session_start();
-$class = $_SESSION['class'];
-session_write_close();
+$class = $_COOKIE['class'];
 
 
 
 try {
     $pdo = new PDO($dsn, $user, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt = $pdo->prepare("SELECT AVG(TIMESTAMPDIFF(SECOND, enter, start)) AS avg_waitingtime, AVG(TIMESTAMPDIFF(SECOND, leaving, enter)) AS avg_stayingtime FROM queue WHERE enter <> 0 AND leaving <> 0 AND leaving IS NOT NULL");
+    $stmt = $pdo->prepare("SELECT AVG(TIMESTAMPDIFF(SECOND, start, enter)) AS avg_waitingtime, AVG(TIMESTAMPDIFF(SECOND, enter,leaving)) AS avg_stayingtime FROM queue WHERE enter <> 0 AND leaving <> 0 AND leaving IS NOT NULL AND class = :class;");
+    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
     $stmt->execute();
     $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $avg_waitingtime = $result[0]['avg_waitingtime']; //待ち時間
@@ -33,9 +32,10 @@ try {
     $stmt = $pdo->prepare("SELECT capacity FROM class WHERE classname = :class");//定員を取る
     $stmt->bindValue(':class', $class, PDO::PARAM_STR);
     $stmt->execute();
-    $capacity = $stmt->fetch(PDO::FETCH_ASSOC);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $capacity = $row['capacity'];
 
-
+var_dump($avg_waitingtime);
 
 //定員＜＝待ち人数の時はavg_waitingtime＋先頭のenterー現在時刻で先頭で並んでいる人の予想滞在時間がわかる
 //それ以外の時はavg_waitingtime / capacity * 待ち人数で予測する

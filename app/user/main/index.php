@@ -1,16 +1,30 @@
 <?php
 include 'config.php';
 
-date_default_timezone_set('Asia/Tokyo');
-
-session_start();
-
-if (!isset($_SESSION['userid'])) {
-    header('Location: index.php');
-    exit;
+// userid クッキーがセットされているか確認
+if (isset($_COOKIE['userid'])) {
+    $userid = $_COOKIE['userid'];
+    echo "userid クッキーの値は {$userid} です。";
+} else {
+    echo "userid クッキーはセットされていません。";
 }
-$userid = $_SESSION['userid'];
-session_write_close();
+
+// seeable_id クッキーがセットされているか確認
+if (isset($_COOKIE['seeable_id'])) {
+    $seeable_id = $_COOKIE['seeable_id'];
+    echo "seeable_id クッキーの値は {$seeable_id} です。";
+} else {
+    echo "seeable_id クッキーはセットされていません。";
+}
+
+
+
+
+if (!isset($_COOKIE['userid'])) {
+    //header('Location: index.php');
+    //exit;
+}
+$userid = $_COOKIE['userid'];
 $waittime;
 $time = time();
 
@@ -94,7 +108,7 @@ try {
         document.addEventListener('DOMContentLoaded', () => {
             const imageSelect = document.getElementById('imageSelect');
             const newImage = document.getElementById('newImage');
-            const userid = "<?php echo $_SESSION['userid'] ?>"; // QRコードに変換したい文字列
+            const userid = "<?php echo $userid ?>"; // QRコードに変換したい文字列
 
             // QRコード生成
             const qr = new QRious({

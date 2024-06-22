@@ -2,13 +2,11 @@
 require_once 'config.php';
 include 'remaining.php';
 
-session_start();
-if (!isset($_SESSION['class'])) {
+if (!isset($_COOKIE['class'])) {
     header('Location: ../../login/login.php');
     exit;
 }
-$class = $_SESSION['class'];
-session_write_close();
+$class = $_COOKIE['class'];
 
 // POSTリクエストからuseridを取得し、存在しない場合はエラーメッセージを表示
 if (!isset($_POST['userid'])) {
@@ -96,4 +94,3 @@ echo '<script>
             window.location.href = "leaving.html";
         }, 3000);
         </script>';
-?>

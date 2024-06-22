@@ -1,32 +1,10 @@
 <?php
 require_once 'config.php';
-
-
-$today = strtotime("now");
-$today = dechex($today);
-$hash = hash('CRC32', $today);
-$userid = '1' . hash('CRC32', $today . $hash) . $today;
-session_start();
-$_SESSION['userid'] = $userid;
-session_write_close();
-
-try {
-    $pdo = new PDO($dsn, $user, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt = $pdo->prepare("INSERT INTO usersid (userid) VALUES (:userid)");
-    $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
-    $stmt->execute();
-
-} catch (PDOException $e) {
-    echo $e->getMessage();
-    exit;
-}
-
-$stmt = $pdo->prepare("SELECT id FROM usersid WHERE userid = :userid");
-$stmt->bindValue(':userid', $userid);
-$stmt->execute();
-$seeable_id = $stmt->fetch(PDO::FETCH_ASSOC);
-
+include 'idGenerate.php';
+list($seeable_id,$userid) = toStudentEntranceId();
+setcookie("userid", $userid, time() + 86400);//有効期限は1日後
+setcookie("seeable_id", $seeable_id, time() + 86400);
+//FIXME QRコードのデータもCOOKIEにしようか。
 ?>
 <!DOCTYPE html>
 <html lang="ja">
@@ -34,10 +12,10 @@ $seeable_id = $stmt->fetch(PDO::FETCH_ASSOC);
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>making_qrcode</title>
+    <title>QRコード生成</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.js"></script>
     <style>
-        .button {
+        .link {
             position: fixed;
             bottom: 0;
             width: 100%;
@@ -62,7 +40,7 @@ $seeable_id = $stmt->fetch(PDO::FETCH_ASSOC);
     <p id="qrText"></p>
     <div><img id="newImg"></div>
     </div>
-    <div class="button">
+    <div class="link">
         <a href="../../main/index.php">メインページへ行く</a>
     </div>
     <script>
@@ -77,7 +55,7 @@ $seeable_id = $stmt->fetch(PDO::FETCH_ASSOC);
             });
 
             //ID出力用コード
-            document.getElementById('qrText').textContent = `あなたのIDは <?php echo $seeable_id['id'] ?> です`;
+            document.getElementById('qrText').textContent = `あなたのIDは <?php echo $seeable_id ?> です`;
             qr.background = '#FFF';
             qr.backgroundAlpha = 0.8;
             qr.foreground = '#000000';

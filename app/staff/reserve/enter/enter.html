@@ -106,16 +106,15 @@
             let userid = document.getElementById('userid');
             userid.classList.add('hidden');//ADD 16日　送信する中身を見えなくした
             if (!qrFlag) {
-                while (userid.value.length < 17) {
+                /*while (userid.value.length < 17) {
                     userid.value += "0";
-                }
+                }*/
+
+               userid = userid.padEnd(73,'0');
                 qrFlag = true;
-            } else if (userid.value.length >= 17) {
+            } else if (userid.value.length === 73) {
                 qrFlag = true;
                 resultForm.submit();
-
-
-            } else {
             }
         });
 

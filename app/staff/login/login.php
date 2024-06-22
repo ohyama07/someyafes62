@@ -33,13 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
 
         // Cookieの設定
-        setcookie("cookie_class", "cookie_password", time() + 36000, "/",'junzs.net', true, true); // 有効期限は10時間後
-        session_start();
-        $_SESSION['class'] = $row['username'];
-        $_SESSION['password'] = $row['password'];
-        $_COOKIE['cookie_class'] = $_SESSION['class'];
-        session_write_close();
-
+        setcookie("class", $row['username'], time() + 86400); // 有効期限は1日
         header('Location: index.php');
         exit();
 

@@ -1,9 +1,8 @@
 <?php
 function inRemaining($class){
 require 'config.php';
-session_start();
-$class = $_SESSION['class'];
-session_write_close();
+
+//$class = $_COOKIE['class'];
 
 try {
     $pdo = new PDO($dsn, $user, $password);

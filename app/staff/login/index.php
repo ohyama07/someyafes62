@@ -1,8 +1,7 @@
 <?php
 require_once 'config.php';
 
-session_start();
-if (!isset($_SESSION['class'])) {
+if (!isset($_COOKIE['class'])) {
     header('Location: login.php');
     exit;
 }
@@ -27,7 +26,7 @@ if (!isset($_SESSION['class'])) {
     <a href="logout.php">ログアウトしてログインページへ</a>
     <script>
         let message = document.querySelector("#message");
-        message.textContent = "<?php echo $_SESSION['class'] . 'としてログイン中'; ?>"
+        message.textContent = "<?php echo $_COOKIE['class'] . 'としてログイン中'; ?>"
     </script>
 </body>
 
