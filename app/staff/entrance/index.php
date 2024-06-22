@@ -1,5 +1,7 @@
 <?php
 include 'idGenerate.php';
+list($seeable_id,$userid) = toEntranceId();
+
 ?>
 <!DOCTYPE html>
 <html lang="ja">
@@ -41,7 +43,7 @@ include 'idGenerate.php';
         let generator = document.querySelector("#generator");
         let clickcount = 0;
         <?php sleep(1); ?>
-        result.textContent = <?php echo toEntranceId()[$seeable_id] ?>;
+        result.textContent = <?php echo $seeable_id ?>;
         time.textContent =  formattedTime + "に生成済";
         generator.addEventListener('click', () => {
             clickcount++
