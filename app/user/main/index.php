@@ -1,12 +1,15 @@
 <?php
-include '../entrance/student/idGenerate.php';
+require_once 'config.php';
 
-if (!isset($_COOKIE['userid']) || !isset($_COOKIE['seeable_id'])) {
-    header('Location: index.php');
+if (isset($_COOKIE['userid']) && isset($_COOKIE['seeable_id'])) {
+    $userid = $_COOKIE['userid'];
+    $seeable_id = $_COOKIE['seeable_id'];
+} else {
+    header('Location: ../entrance/student/index.php');
     exit;
 }
-$userid = $_COOKIE['userid'];
-$seeable_id = $_COOKIE['seeable_id'];
+
+//
 $waittime;
 $time = time();
 

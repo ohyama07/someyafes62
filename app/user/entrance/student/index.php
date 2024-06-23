@@ -2,19 +2,20 @@
 require_once 'config.php';
 include 'idGenerate.php';
 
+
+if (!isset($_COOKIE['userid']) || !isset($_COOKIE['seeable_id'])) {
+    list($seeable_id,  $userid) = toStudentEntranceId();
+    setcookie('userid', $userid, time() + 86400, "/");
+    setcookie('seeable_id', $seeable_id, time() + 86400, "/");
+
+    header('Location:' . $_SERVER['PHP_SELF']);
+    exit;
+  }
+
 $userid = $_COOKIE['userid'];
 $seeable_id = $_COOKIE['seeable_id'];
 
-if (empty($_COOKIE['userid'])) {
-    list($seeable_id,  $userid) = toStudentEntranceId();
-    setcookie('userid', $userid, time() + 86400);
-    setcookie('seeable_id', $seeable_id, time() + 86400);
-  }
-
-
-
-
-//FIXME QRコードのデータもCOOKIEにしようか。
+//MEMO 出来てるはず->　QRコードのデータもCOOKIEにしようか。
 ?>
 <!DOCTYPE html>
 <html lang="ja">

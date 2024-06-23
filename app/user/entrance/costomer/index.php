@@ -1,13 +1,18 @@
 <?php
 include '../../../staff/entrance/idGenerate.php';
 require_once 'config.php';
-list($seeable_id,$userid) = toStudentEntranceId();
 
-setcookie("userid", $userid, time() + 86400);//有効期限は1日後
-setcookie("seeable_id", $seeable_id, time() + 86400);
-$_COOKIE['userid'] = $userid;
-$_COOKIE['$seeable_id'] = $seeable_id;
+if (!isset($_COOKIE['userid']) || !isset($_COOKIE['seeable_id'])) {
+    list($seeable_id, $userid) = toEntranceId();
+    setcookie('userid', $userid, time() + 86400, "/");
+    setcookie('seeable_id', $seeable_id, time() + 86400, "/");
 
+    header('Location:' . $_SERVER['PHP_SELF']);
+    exit;
+}
+
+$userid = $_COOKIE['userid'];
+$seeable_id = $_COOKIE['seeable_id'];
 ?>
 <!DOCTYPE html>
 <html lang="ja">
@@ -15,8 +20,20 @@ $_COOKIE['$seeable_id'] = $seeable_id;
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>making_qrcode</title>
+    <title>QRコード生成</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.js"></script>
+    <style>
+        .link {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            padding: 10px;
+            background-color: #f5f5f5;
+            /* 必要に応じて背景色を設定 */
+            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
 </head>
 
 <body>
@@ -31,7 +48,11 @@ $_COOKIE['$seeable_id'] = $seeable_id;
     <p id="qrText"></p>
     <div><img id="newImg"></div>
     </div>
+    <div class="link">
+        <a href="../../main/index.php">メインページへ行く</a>
+    </div>
     <script>
+        let cookie = document.cookie;
         let query = 0;
         let userid = "<?php echo $userid ?>";
         document.addEventListener('DOMContentLoaded', () => {
@@ -53,11 +74,34 @@ $_COOKIE['$seeable_id'] = $seeable_id;
             let cvs = userid;
             let png = cvs.toDataURL();
             document.getElementById("newImg").src = png;
-            /* ローカルストレージに保存
-            localStorage.setItem('query', query);*/
+
+            // PNGをサーバーに送信
+            fetch('save_session.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ png: png })
+            })
+            .then(response => response.text())
+            .then(data => {
+                console.log('Success:', data);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
 
         });
+
     </script>
+    <?php
+    //echo "3秒後にリダイレクトします";
+    /*echo '<script>
+    setTimeout(function(){
+        window.location.href = "../../main/index.php";
+    }, 1500);
+    </script>';*/
+    ?>
     <style>
         /*#qrOutput {
         display: none;
@@ -99,18 +143,7 @@ $_COOKIE['$seeable_id'] = $seeable_id;
             justify-content: space-around;
             padding: 20px;
         }
-
-        @media (max-width: 500px) {}
-        /*FIXME ここ中途半端 */
     </style>
-    <?php
-    echo "3秒後にリダイレクトします";
-    echo '<script>
-    setTimeout(function(){
-        window.location.href = "../../main/index.php";
-    }, 1500);
-    </script>';
-    ?>
 </body>
 
 </html>

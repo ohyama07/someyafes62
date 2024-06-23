@@ -19,9 +19,9 @@ if (!isset($_COOKIE['class'])) {
 
 <body>
     <p id="message"></p>
-    <a href="../reserve/enter/enter.html">予約・入場処理ページへ</a>
+    <a href="../reserve/enter/enter.php">予約・入場処理ページへ</a>
     <br>
-    <a href="../reserve/leaving/leaving.html">出場処理ページへ</a>
+    <a href="../reserve/leaving/leaving.php">出場処理ページへ</a>
     <br>
     <a href="logout.php">ログアウトしてログインページへ</a>
     <script>

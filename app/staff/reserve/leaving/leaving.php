@@ -5,48 +5,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
-    <title>入場</title>
-    <style>
-        .hidden {
-            display: none;
-        }
-
-        .button {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            text-align: center;
-            padding: 10px;
-            background-color: #f5f5f5;
-            /* 必要に応じて背景色を設定 */
-            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        #wrapper {
-            position: relative;
-        }
-
-        #video,
-        #camera-canvas,
-        #rect-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-
-        #resultForm {
-            position: absolute;
-            top: 480px;
-            /* canvasの高さに合わせて調整 */
-            left: 0;
-            z-index: 200;
-            /* 必要に応じてz-indexを調整 */
-        }
-    </style>
+    <title>出場</title>
 </head>
 
 <body>
-
+    <p><?php echo $_COOKIE['class'] ."としてログイン中" ?></p>
     <div id="wrapper">
         <video id="video" autoplay muted playsinline></video>
         <canvas id="camera-canvas"></canvas>
@@ -61,9 +24,7 @@
     <script src="./jsQR.js"></script>
     <video id="video" width="640" height="480" autoplay></video>
 
-    <div class="button">
-        <button type="button" id="go" name="go">定員追加ページへ</button>
-    </div>
+
     <script>
         // Webカメラの起動
         const video = document.getElementById('video');
@@ -96,8 +57,8 @@
 
 
 
-        // QRコードの検出
-        const rectCvs = document.getElementById('rect-canvas');
+         // QRコードの検出
+         const rectCvs = document.getElementById('rect-canvas');
         const rectCtx = rectCvs.getContext('2d');
         let qrFlag = false;
 
@@ -109,16 +70,18 @@
                 /*while (userid.value.length < 17) {
                     userid.value += "0";
                 }*/
-
-               userid = userid.padEnd(73,'0');
+               
+                userid = userid.padEnd(73,'0');
                 qrFlag = true;
-            } else if (userid.value.length === 73) {
+            } else if (userid.value.length >= 17) {
                 qrFlag = true;
                 resultForm.submit();
+
+
+            } else {
             }
         });
-
-
+//FIXME スマホ対応させましょう
 
 
         const checkImage = () => {
@@ -142,10 +105,7 @@
 
         setInterval(checkImage, 250);
 
-        let go = document.querySelector("#go");
-        go.addEventListener('click', () => {
-            window.location.href = 'addCapacity.html';
-        })
+
 
 
 
@@ -171,7 +131,28 @@
 
 
     </script>
+    <style>
+        #wrapper {
+            position: relative;
+        }
 
+        #video,
+        #camera-canvas,
+        #rect-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #resultForm {
+            position: absolute;
+            top: 480px;
+            /* canvasの高さに合わせて調整 */
+            left: 0;
+            z-index: 200;
+            /* 必要に応じてz-indexを調整 */
+        }
+    </style>
 </body>
 
 </html>

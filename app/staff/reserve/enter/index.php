@@ -16,7 +16,7 @@ if (!isset($_POST['userid'])) {
     echo "IDが見つかりません";
     echo '<script>
     setTimeout(function(){
-        window.location.href = "enter.html";
+        window.location.href = "enter.php";
     }, 1500);
     </script>';
     exit;
@@ -24,7 +24,7 @@ if (!isset($_POST['userid'])) {
     echo "idを正しく入力してください";
     echo '<script>
     setTimeout(function(){
-        window.location.href = "enter.html";
+        window.location.href = "enter.php";
     }, 1500);
     </script>';
     exit;
@@ -175,7 +175,7 @@ if ($can_enter) {
 echo "<br>3秒後に元のページに戻ります";
 echo '<script>
         setTimeout(function(){
-            window.location.href = "enter.html";
+            window.location.href = "";
         }, 3000);
         </script>';*///FIXME あとで
 

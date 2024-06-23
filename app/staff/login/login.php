@@ -4,6 +4,7 @@ $err = '';
 
 if (isset($_COOKIE['class'])) {
     header('Location: index.php');
+    exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -31,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $err = "パスワードが違います";
 
     } else {
-        setcookie("class", $row['username'], time() + 86400); // 有効期限は1日
+        setcookie("class", $row['username'], time() + 86400, "/"); // 有効期限は1日
         header('Location: index.php');
         exit;
 

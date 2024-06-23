@@ -13,7 +13,7 @@ if (!isset($_POST['userid'])) {
     echo "IDが見つかりません";
     echo '<script>
     setTimeout(function(){
-        window.location.href = "leaving.html";
+        window.location.href = "leaving.php";
     }, 1500);
     </script>';
     exit;
@@ -21,7 +21,7 @@ if (!isset($_POST['userid'])) {
     echo "idを正しく入力してください";
     echo '<script>
     setTimeout(function(){
-        window.location.href = "leaving.html";
+        window.location.href = "leaving.php";
     }, 1500);
     </script>';
     exit;
@@ -51,7 +51,7 @@ try {
         echo "予約処理をしてください こちらは出場処理です";
         echo '<script>
         setTimeout(function(){
-            window.location.href = "leaving.html";
+            window.location.href = "leaving.php";
         }, 1500);
         </script>';
         exit;
@@ -59,7 +59,7 @@ try {
         echo "入場処理をしてください こちらは出場処理です";
         echo '<script>
         setTimeout(function(){
-            window.location.href = "leaving.html";
+            window.location.href = "leaving.php";
         }, 1500);
         </script>';
         exit;
@@ -72,7 +72,7 @@ try {
         echo "ありがとうございました";
         echo '<script>
         setTimeout(function(){
-            window.location.href = "leaving.html";
+            window.location.href = "leaving.php";
         }, 1500);
         </script>';
     }
@@ -91,6 +91,6 @@ try {
 echo "<br>3秒後に元のページに戻ります";
 echo '<script>
         setTimeout(function(){
-            window.location.href = "leaving.html";
+            window.location.href = "leaving.php";
         }, 3000);
         </script>';

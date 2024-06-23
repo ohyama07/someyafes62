@@ -2,6 +2,10 @@
 require_once 'config.php';
 function toStudentEntranceId()
 {
+    if (isset($_COOKIE['userid']) && isset($_COOKIE['seeable_id'])) {
+        return [$_COOKIE['seeable_id'], $_COOKIE['userid']];
+    }
+
     global $dsn, $user, $password;
     $today = (int) (new DateTimeImmutable())->format('YmdHisu');
     $today_hex = dechex($today); // Unixタイムスタンプを16進数文字列に変換
@@ -44,17 +48,14 @@ function toStudentEntranceId()
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         $seeable_id = $row['id'];
-        return [$seeable_id, $userid];
 
     } catch (PDOException $e) {
         echo $e->getMessage();
         exit;
     }
 
+    setcookie('userid', $userid, time() + 86400, "/");
+    setcookie('seeable_id', $seeable_id, time() + 86400, "/");
+    return [$seeable_id, $userid];
 }
 
-if (empty($_COOKIE['userid'])) {
-    list($seeable_id,  $userid) = toStudentEntranceId();
-    setcookie('userid', $userid, time() + 86400);
-    setcookie('seeable_id', $seeable_id, time() + 86400);
-  }
