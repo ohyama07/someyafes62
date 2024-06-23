@@ -1,30 +1,12 @@
 <?php
-include 'config.php';
+include '../entrance/student/idGenerate.php';
 
-// userid クッキーがセットされているか確認
-if (isset($_COOKIE['userid'])) {
-    $userid = $_COOKIE['userid'];
-    echo "userid クッキーの値は {$userid} です。";
-} else {
-    echo "userid クッキーはセットされていません。";
-}
-
-// seeable_id クッキーがセットされているか確認
-if (isset($_COOKIE['seeable_id'])) {
-    $seeable_id = $_COOKIE['seeable_id'];
-    echo "seeable_id クッキーの値は {$seeable_id} です。";
-} else {
-    echo "seeable_id クッキーはセットされていません。";
-}
-
-
-
-
-if (!isset($_COOKIE['userid'])) {
-    //header('Location: index.php');
-    //exit;
+if (!isset($_COOKIE['userid']) || !isset($_COOKIE['seeable_id'])) {
+    header('Location: index.php');
+    exit;
 }
 $userid = $_COOKIE['userid'];
+$seeable_id = $_COOKIE['seeable_id'];
 $waittime;
 $time = time();
 
@@ -37,15 +19,15 @@ try {
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$row) {
         $class = "まだ入場していません";
-        $waittime = "まだ入場していません";
+        $waittime = "";
     } else {
-        $class = $row['class'];
+        $class = "予約中のクラスは" + $row['class'];
         $stmt = $pdo->prepare('SELECT expecttime FROM class WHERE classname = :class');
         $stmt->bindValue(':class', $class, PDO::PARAM_STR);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) {
-            $exwaittime = "まだ入場していません";
+            $exwaittime = "";
         } else {
             $waittime = (int) $row['expecttime'] + $time;
             $waittime = date('H:i', $waittime);
@@ -91,7 +73,7 @@ try {
 <body>
     <h1>ユーザーメイン</h1>
     <p><?php
-    echo "予約中のクラス" . $class . "<br>予想入場時刻" . $waittime;
+    echo $class .  "<br>" . $waittime;
     ?></p>
     <div id="qrcode">
         <select id="imageSelect">
@@ -99,6 +81,7 @@ try {
             <option value="hide">QRコードを非表示</option>
         </select>
         <div><canvas id="newImage" alt="QRコード"></div>
+        <p id="seeable_id">あなたのIDは <?php echo $seeable_id ?> です <br> このIDを使っても入場などの処理ができます</p>
     </div>
     <div class="otherpage">
         <a href=""></a>

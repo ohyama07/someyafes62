@@ -1,41 +1,39 @@
 <?php
 require_once 'config.php';
-
-
-
 $err = '';
 
+if (isset($_COOKIE['class'])) {
+    header('Location: index.php');
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $class = $_POST['userid'];
+    $user_password = $_POST['password'];
+
     try {
         $pdo = new PDO($dsn, $user, $password);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $stmt = $pdo->prepare('SELECT * FROM users WHERE userid = :class');
+        $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         echo $e->getMessage();
     }
 
 
-    $class = $_POST['userid'];
-    $password = $_POST['password'];
-
-    $stmt = $pdo->prepare('SELECT * FROM users WHERE userid = :class');
-    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
-    $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
     if (!$row) {
 
         $err = "ユーザーが見つかりません";
 
-    } elseif ($row['password'] !== $password) {
+    } elseif ($row['password'] !== $user_password) {
 
         $err = "パスワードが違います";
 
     } else {
-
-        // Cookieの設定
         setcookie("class", $row['username'], time() + 86400); // 有効期限は1日
         header('Location: index.php');
-        exit();
+        exit;
 
     }
 }

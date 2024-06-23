@@ -55,6 +55,6 @@ function toStudentEntranceId()
 
 if (empty($_COOKIE['userid'])) {
     list($seeable_id,  $userid) = toStudentEntranceId();
+    setcookie('userid', $userid, time() + 86400);
+    setcookie('seeable_id', $seeable_id, time() + 86400);
   }
-  setcookie('userid', $userid, time() + 86400);
-  setcookie('seeable_id', $seeable_id, time() + 86400);
