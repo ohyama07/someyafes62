@@ -5,6 +5,9 @@ include 'limited_records.php';
 include '../../waittime/index.php';
 
 $already = true;//MEMO 既にカラムがありますよってこと
+$can_enter = false;
+$remaining = inRemaining($class);
+$limits = inLimited($pdo, $class);
 
 if (!isset($_COOKIE['class'])) {
     header('Location: ../../login/login.php');
@@ -29,14 +32,12 @@ if (!isset($_POST['userid'])) {
     </script>';
     exit;
 } else {
-$userid = $_POST['userid'];
+    $userid = $_POST['userid'];
 }
 
 try {
     $pdo = new PDO($dsn, $user, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $remaining = inRemaining($class);
-    $limits = inLimited($pdo, $class);
     $stmt = $pdo->prepare('SELECT class FROM queue WHERE userid = :userid AND class <> :class AND enter IS NULL');
     $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
     $stmt->bindValue('class', $class, PDO::PARAM_STR);
@@ -124,60 +125,93 @@ try {
     exit;
 }
 
+try {
+    $stmt = $pdo->prepare('SELECT userid FROM queue WHERE class = :class AND start IS NOT NULL AND enter IS NULL AND permit IS NOT NULL ORDER BY start ASC');
+    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+    $stmt->execute();
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (!$rows) {
+        echo "入れる人数を取得できませんでした";
+        var_dump($class, $remaining);
+        exit;
+    }
+    foreach ($rows as $row) {
+        $limits_id = $row['userid'];
+        if ($limits_id === $userid) {
+            $can_enter = true;
+        }
+    }
 
-$stmt = $pdo->prepare('SELECT userid FROM queue WHERE class = :class AND start IS NOT NULL AND enter IS NULL ORDER BY start ASC LIMIT :remaining');
-$stmt->bindValue(':class', $class, PDO::PARAM_STR);
-$stmt->bindValue(':remaining', $remaining, PDO::PARAM_INT);
-$stmt->execute();
-$limits_ids = $stmt->fetchAll(PDO::FETCH_ASSOC);
-$limits_count = count($limits_ids);
+    $limits_count = count($rows);//expect: 1
 
-$can_enter = false;
+} catch (PDOException $e) {
+    echo $e->getMessage();
+    exit;
+}
+
 $over_permit = 0;
 
 if ($remaining > 0) {   //許容範囲計算した後の判定
-    $stmt = $pdo->prepare('SELECT COUNT(*) AS count FROM queue WHERE class = :class AND enter IS NULL AND permit < NOW() - INTERVAL 5 MINUTE ');//スキップ対象計算
-    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
-    $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    $permit_count = $row['count'];
-    $limits_count += $permit_count;
-    var_dump($remaining, $limits_count);
-    foreach ($limits_ids as $limit_id) {   //前から許容人数番目(=$limits_count)までにいるかの判定
-        /*$sql = "UPDATE queue SET permit = NOW() WHERE permit IS NULL";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute();*/
-        if (!empty($limit_id) && $limit_id['userid'] === $userid) {
-            $can_enter = true;
-            break;
+    try {
+        $stmt = $pdo->prepare('SELECT COUNT(*) AS count FROM queue WHERE class = :class AND enter IS NULL AND permit < NOW() - INTERVAL 5 MINUTE ');//スキップ対象計算
+        $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $permit_count = $row['count'];//expect: 0
+        $limits_count += $permit_count;//expect: 1
+        foreach ($limits_ids as $index => $limit_id) {   //前から許容人数番目(=$limits_count)までにいるかの判定
+            if ($index > $limits_count) {
+                break;
+            }
+            if (!empty($limit_id) && $limit_id['userid'] === $userid) {
+                $can_enter = true;
+                break;
+            }
         }
+    } catch (PDOException $e) {
+        echo $e->getMessage();
+        exit;
     }
-}
-//FIXME permitの代入を適切な方法に変更しております。
-//FIXME 他のクラスだとどっかが動かないから入場させてくれない
 
+    try {
+        $sql = "UPDATE queue SET permit = NOW() WHERE permit IS NULL AND class = :class AND enter IS NULL ORDER BY start ASC LIMIT :remaining";
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+        $stmt->bindValue(':remaining', $remaining, PDO::PARAM_INT);
+        $stmt->execute();
+    } catch (PDOException $e) {
+        echo $e->getMessage();
+        exit;
+    }
+
+}
 
 if ($can_enter) {
-    $stmt = $pdo->prepare("UPDATE queue SET enter = NOW() WHERE userid = :userid AND class = :class AND enter IS NULL");
-    $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
-    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
-    $stmt->execute();
+    try {
+        $stmt = $pdo->prepare("UPDATE queue SET enter = NOW() WHERE userid = :userid AND class = :class AND enter IS NULL");
+        $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
+        $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+        $stmt->execute();
+    } catch (PDOException $e) {
+        echo $e->getMessage();
+        exit;
+    }
+
     echo "入場してください";
-} elseif ($already) {//$already = true ってことは予約処理済かつ入場できないってこと
-    echo "まだ入場できません  もう少しお待ちください";//ADD 13日
-    echo "<br>";
+} elseif ($already) {//MEMO $already = true ってことは予約処理済かつ入場できないってこと
+    echo "まだ入場できません  もう少しお待ちください<br>";
     echo waittimeCal($class, $userid);
 } else {
     echo "予約しました <br>";
     echo waittimeCal($class, $userid);
 }
-/*
+
 echo "<br>3秒後に元のページに戻ります";
 echo '<script>
         setTimeout(function(){
-            window.location.href = "";
+            window.location.href = "enter.php";
         }, 3000);
-        </script>';*///FIXME あとで
+        </script>';
 
 //一般公開終了間近になったら一般客を優先させる処理
 try {
@@ -191,88 +225,3 @@ try {
 
 
 //MEMO 出てこない人がいたら定員を一時的に手動で増やせるようにすればいい→別ページに乗っける(noticeはいらないかな)　別にフィールドを設けてプラスマイナスをわかりやすくさせることにする
-
-
-
-
-/*
-    // 許容範囲計算
-    $remaining = include 'remaining.php';
-
-    // 出し物の定員未満ならenterにもstartと同じ値を入れる処理を追加する
-    if ($remaining !== 0) {
-
-    //前から$remaining番目にあるかどうか調べる
-    $records = getLimitedRecords($pdo, $remaining);
-    if (in_array($userid, array_column($records, 'userid'))) {
-        $stmt = $pdo->prepare("UPDATE queue SET start = NOW() WHERE userid = :userid");
-        $stmt->execute(['userid' => $userid]);
-
-        // queueテーブルのenterに現在のタイムスタンプを挿入して入場させる
-        $stmt = $pdo->prepare("UPDATE queue SET enter = NOW() WHERE userid = :userid");
-        $stmt->execute(['userid' => $userid]);
-        echo "入場してください";
-        exit;
-
-    } else {
-        //permit IS null && タイムスタンプが一番小さいかどうかを調べる　→来ない人がいては入れないだけなのかを確認する
-        $stmt = $pdo->prepare("SELECT * FROM queue WHERE permit IS NULL ORDER BY start ASC LIMIT 1");
-        $stmt->execute();
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($row) {
-            //startに現在のタイムスタンプを入れる
-            $stmt = $pdo->prepare("UPDATE queue SET start = NOW() WHERE userid = :userid");
-            $stmt->execute(['userid' => $userid]);
-
-            //permitに0を入れる
-            $stmt = $pdo->prepare("UPDATE queue SET permit = 0 WHERE userid = :userid");
-            $stmt->execute(['userid' => $userid]);
-
-            //入場させる
-            $stmt = $pdo->prepare("UPDATE queue SET enter = NOW() WHERE userid = :userid");
-            $stmt->execute(['userid' => $userid]);
-            echo "入場してください";
-            exit;
-        } else {
-             // 特定のユーザーIDでstartがNULLのレコードを検索
-        $stmt = $pdo->prepare("SELECT * FROM queue WHERE userid = :userid AND start IS NULL");
-        $stmt->execute(['userid' => $userid]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-        if ($row) {
-            // startがNULLの場合、startに現在のタイムスタンプを設定
-            $stmt = $pdo->prepare("UPDATE queue SET start = NOW() WHERE userid = :userid");
-            $stmt->execute(['userid' => $userid]);
-            echo "予約しました";
-    
-            // 特定のユーザーIDで、異なるクラスに属し、enterがNULLでstartがNULLでないレコードを検索
-            $stmt = $pdo->prepare("SELECT * FROM queue WHERE userid = :userid AND class != :class AND enter IS NULL AND start IS NOT NULL");
-            $stmt->execute(['userid' => $userid, 'class' => $class]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-            if ($row) {
-                // 条件に合致するレコードが存在する場合、enterとleavingを'00:00:00'に更新
-                $stmt = $pdo->prepare("UPDATE queue SET enter = '00:00:00', leaving = '00:00:00' WHERE userid = :userid AND class = :class");
-                $stmt->execute(['userid' => $userid, 'class' => $row['class']]);
-            } else {
-            echo "入場できません　再度時間を空けて処理をしてください";
-        }
-        exit;
-        }
-    }
-}
-    }
-*/
-?>
-<!DOCTYPE html>
-<html lang="ja">
-
-<head>
-    <meta charset="utf-8">
-</head>
-
-<body>
-</body>
-
-</html>

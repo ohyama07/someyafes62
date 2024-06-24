@@ -143,7 +143,7 @@
                 $stmt->execute();
                 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 foreach ($rows as $row) {
-                    $classwaittime = ceil($row['expecttime'] / 60);
+                    $classwaittime = round($row['expecttime'] / 60);
                     echo "<tr>";
                     echo "<td data-label='クラス' class='txt'>" . htmlspecialchars($row['classname']) . "</td>";
                     echo "<td data-label='待ち時間' class='txt'>" . htmlspecialchars($classwaittime) . "分</td>";

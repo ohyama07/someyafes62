@@ -69,6 +69,7 @@ if (!isset($_COOKIE['class'])) {
 
     <div class="button">
         <button type="button" id="go" name="go">定員追加ページへ</button>
+        <button type="button" id="back" name ="back">スタッフメインページへ</button>
     </div>
     <script>
         // Webカメラの起動
@@ -112,11 +113,11 @@ if (!isset($_COOKIE['class'])) {
             let userid = document.getElementById('userid');
             userid.classList.add('hidden');//ADD 16日　送信する中身を見えなくした
             if (!qrFlag) {
-                /*while (userid.value.length < 17) {
+                while (userid.value.length < 73) {
                     userid.value += "0";
-                }*/
+                }
 
-                userid = userid.padEnd(73, '0');
+                //userid = userid.value.padEnd(73, '0');
                 qrFlag = true;
             } else if (userid.value.length === 73) {
                 qrFlag = true;
@@ -151,6 +152,10 @@ if (!isset($_COOKIE['class'])) {
         let go = document.querySelector("#go");
         go.addEventListener('click', () => {
             window.location.href = 'addCapacity.html';
+        })
+        let back = document.querySelector("#back");
+        back.addEventListener('click', () => {
+            window.location.href = '../../login/index.php';
         })
 
 

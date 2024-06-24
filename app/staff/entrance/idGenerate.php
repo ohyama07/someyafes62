@@ -3,9 +3,6 @@ require_once 'config.php';
 
 function toEntranceId()
 {
-    if (isset($_COOKIE['userid']) && isset($_COOKIE['seeable_id'])) {
-        return [$_COOKIE['seeable_id'], $_COOKIE['userid']];
-    }
 
     global $dsn, $user, $password;
     $today = (int) (new DateTimeImmutable())->format('YmdHisu');
@@ -47,15 +44,13 @@ function toEntranceId()
         $stmt->bindValue(':userid', $userid);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        $seeable_id = $row['id'];
+        $seeable_id = "0".$row['id'];
     } catch (PDOException $e) {
         echo $e->getMessage();
         exit;
     }
 
 
-    setcookie('userid', $userid, time() + 86400, "/");
-    setcookie('seeable_id', $seeable_id, time() + 86400, "/");
 
     return [$seeable_id, $userid];
 

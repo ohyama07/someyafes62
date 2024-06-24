@@ -43,7 +43,7 @@ list($seeable_id,$userid) = toEntranceId();
         let generator = document.querySelector("#generator");
         let clickcount = 0;
         <?php sleep(1); ?>
-        result.textContent = <?php echo $seeable_id ?>;
+        result.textContent = "0" + <?php echo $seeable_id ?>;
         time.textContent =  formattedTime + "に生成済";
         generator.addEventListener('click', () => {
             clickcount++

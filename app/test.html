@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .container {
+            display: flex;
+            justify-content: space-between;
+            /* アイテムを左右に均等に配置する */
+            align-items: center;
+            /* アイテムを垂直方向に中央揃えする */
+            height: 200px;
+            /* 必要に応じて高さを設定 */
+            padding: 0 20px;
+            /* コンテナの左右に余白を追加 */
+        }
+
+        .item {
+            font-size: 18px;
+            /* テキストのフォントサイズを設定 */
+            padding: 10px;
+            /* テキストの内側の余白を設定 */
+            border: 1px solid #ccc;
+            /* 枠線を追加 */
+            padding-top: 100px;
+            padding-bottom: 100px;
+        }
+
+        .left {
+            order: 1;
+            /* 左側のアイテムを先頭に配置 */
+        }
+
+        .right {
+            order: 2;
+            /* 右側のアイテムを2番目に配置 */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="item left">戻る</div>
+        <div class="item right">先へ</div>
+    </div>
+
+
+</body>
+
+</html>

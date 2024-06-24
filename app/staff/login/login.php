@@ -6,7 +6,6 @@ if (isset($_COOKIE['class'])) {
     header('Location: index.php');
     exit;
 }
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $class = $_POST['userid'];
     $user_password = $_POST['password'];
