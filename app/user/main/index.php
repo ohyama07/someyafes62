@@ -41,34 +41,80 @@ try {
             $class = $row['class'];
         }
         $enter = "予約中のクラス:" . $class;
-        function calculateWaitTime($class)
+        function calculateWaitTime($class, $userid)
         {
             global $dsn, $user, $password;
             try {
                 $pdo = new PDO($dsn, $user, $password);
                 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-                // `expecttime`を取得
-                $stmt = $pdo->prepare('SELECT expecttime FROM class WHERE classname = :class');
-                $stmt->bindValue(':class', $class, PDO::PARAM_STR);
-                $stmt->execute();
-                $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-                if ($row && isset($row['expecttime'])) {
-                    // 現在のUNIXタイムスタンプを取得
-                    $currentTime = time();
-
-                    // `expecttime`を整数に変換して加算
-                    $expecttime = (int) $row['expecttime'];
-                    $futureTimestamp = $currentTime + $expecttime;
-
-                    // 未来の時間をフォーマット
-                    $waittime = date('H:i', $futureTimestamp);
-
-                    return $waittime;
-                } else {
-                    throw new Exception('`expecttime`が見つかりません。');
+                // `capacity`を取得
+                try {
+                    $stmt = $pdo->prepare('SELECT capacity FROM class WHERE classname = :class');
+                    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+                    $stmt->execute();
+                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $capacity = $row['capacity'];
+                } catch (PDOException $e) {
+                    echo $e->getMessage();
+                    exit;
                 }
+
+
+                //待ち時間を計算
+                try {
+                    $stmt = $pdo->prepare('SELECT row_no FROM (SELECT userid, ROW_NUMBER() OVER (ORDER BY start ASC) AS row_no FROM queue WHERE class = :class) AS ranked_queue WHERE userid = :userid');
+                    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+                    $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
+                    $stmt->execute();
+                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $waits = $row['row_no'];
+                } catch (PDOException $e) {
+                    echo $e->getMessage();
+                    exit;
+                }
+
+                try {
+                    $stmt = $pdo->prepare('SELECT entering.enter, TIMESTAMPDIFF(SECOND, entering.enter, NOW()) as duration, entering.row_no, waiting.userid FROM (SELECT enter, leaving, ROW_NUMBER() OVER (ORDER BY enter ASC) AS row_no FROM queue WHERE enter IS NOT NULL AND leaving IS NULL AND class = :class) AS entering INNER JOIN (SELECT userid, enter, leaving, ROW_NUMBER() OVER (ORDER BY enter ASC) AS row_no FROM queue WHERE enter IS NULL AND class = :class) AS waiting on entering.row_no = waiting.row_no WHERE userid = :userid');//予約した順番と同じ順番の人が入ってから何分経ったかを計算(予約したとき前から2番目なら、入場している中の前から2番目の人の時間をもらってくる)
+                    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+                    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+                    $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
+                    $stmt->execute();
+                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                    if (!$row) {
+                        $reservingnum = 0;
+                    } else {
+                        $reservingnum = $row['duration'];//現在時刻から何分経ったかってこと
+                    }
+            
+            
+            
+                    $stmt = $pdo->prepare('SELECT AVG(TIMESTAMPDIFF(SECOND, enter,leaving)) AS avg_waitingtime FROM queue WHERE class = :class AND enter IS NOT NULL AND leaving IS NOT NULL AND leaving <> 0 AND leaving - enter <= 900'); //滞在時間が15分以内のものを取って平均を計算する。
+                    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+                    $stmt->execute();
+                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $avg_waitingtime = $row['avg_waitingtime'];
+            
+                } catch (PDOException $e) {
+                    echo $e->getMessage();
+                    exit;
+                }
+
+
+
+                if ($waits <= $capacity) {
+                    $expect_waittime = $avg_waitingtime - $reservingnum;
+                    $expect_waittime = round($expect_waittime);
+                    if ($expect_waittime <= 0) {
+                        ;
+                    } else {
+                        $expect_waittime = round($expect_waittime / 60);
+                    }
+                } else {
+                    $expect_waittime = $avg_waitingtime * $waits / $capacity / 60;
+                    $expect_waittime = round($expect_waittime);
+                }
+
             } catch (PDOException $e) {
                 echo 'データベースエラー: ' . $e->getMessage();
                 return null;
@@ -77,7 +123,21 @@ try {
                 return null;
             }
         }
-        $waittime = calculateWaitTime($class);
+        $waittime = calculateWaitTime($class, $userid);
+
+        try {
+            $stmt = $pdo->prepare('SELECT permit FROM queue WHERE enter IS NULL AND permit IS NOT NULL AND class = :class AND userid = :userid');
+            $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+            $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row) {
+                $enter = "入場できます。該当クラスに行って入場して下さい";
+            }
+        } catch (PDOException $e) {
+            echo $e->getMessage();
+            exit;
+        }
 
     } elseif (count($rows) >= 2) {  //MEMO 二か所以上あったら(多分到達しないが、)最新のクラスのみを表示
         $stmt = $pdo->prepare('SELECT class, start FROM queue WHERE userid = :userid AND enter IS NULL LIMIT 1');
@@ -93,7 +153,7 @@ try {
                 if ($time) {
                     $enter .= "予約中のクラス: " . $row['class'] . " 予想入場時刻: " . $time['expecttime'] . "<br>";
                 } else {
-                    $enter .= "予約中のクラス:" . $row['class'] . "予想入場時刻: 見つかりません <br>";
+                    $enter .= "予約中のクラス:" . $row['class'] . "予想入場時刻: --:-- <br>";
                 }
             }
         }
@@ -165,8 +225,9 @@ try {
         <p id="seeable_id">あなたのIDは <?php echo $seeable_id ?> です <br> このIDを使っても入場などの処理ができます</p>
     </div>
     <a href="waitlist.php">待ち時間一覧表示ページへ</a>
-    <p id="discription">入場中です。というのは入場してるけど出場処理をしていないときに表示されます。<br> 入場したクラスで出場処理をするか、他クラスで入場処理をしてください。 <br> （この表示のまま帰られたとしても処理に大きくは影響はしません。が、なるべく出場処理をしてください。）</p>
-    
+    <p id="discription">入場中です。というのは入場してるけど出場処理をしていないときに表示されます。<br> 入場したクラスで出場処理をするか、他クラスで入場処理をしてください。 <br>
+        （この表示のまま帰られたとしても処理に大きくは影響はしません。が、なるべく出場処理をしてください。）</p>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {

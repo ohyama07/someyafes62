@@ -13,6 +13,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo = new PDO($dsn, $user, $password);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $stmt = $pdo->prepare('SELECT capacity FROM class WHERE classname = :class');
+        $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $capacity = $row['capacity'];
+    } catch (PDOException $e) {
+        echo $e->getMessage();
+    }
+
+    try {
         $stmt = $pdo->prepare('SELECT * FROM users WHERE userid = :class');
         $stmt->bindValue(':class', $class, PDO::PARAM_STR);
         $stmt->execute();
@@ -32,8 +42,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     } else {
         setcookie("class", $row['username'], time() + 86400, "/"); // 有効期限は1日
-        header('Location: index.php');
-        exit;
+        if ($capacity !== 0) {
+            header('Location: addCapacity.php');
+            exit;
+        } else {
+            header('Location: index.php');
+            exit;
+        }
 
     }
 }

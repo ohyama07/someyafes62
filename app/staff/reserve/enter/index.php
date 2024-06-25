@@ -8,6 +8,8 @@ $already = true;//MEMO 既にカラムがありますよってこと
 $can_enter = false;
 $remaining = inRemaining($class);
 $limits = inLimited($pdo, $class);
+$offset;
+$limits_count = 0;
 
 if (!isset($_COOKIE['class'])) {
     header('Location: ../../login/login.php');
@@ -23,7 +25,7 @@ if (!isset($_POST['userid'])) {
     }, 1500);
     </script>';
     exit;
-} elseif ($_POST['userid'] === "00000000000000000") {
+} elseif ($_POST['userid'] === "0000000000000000000000000000000000000000000000000000000000000000000000000") {
     echo "idを正しく入力してください";
     echo '<script>
     setTimeout(function(){
@@ -54,7 +56,8 @@ try {
 
         //2,useridが他と浮気したやつと一致しないかつpermit付与対象でないやつのpermitをNULLにする→permit付与対象を適切にする LIMIT100は大きい値を入れただけ
         //1,2の処理で浮気したやつの次の人にpermitを付与させることを意味する(コンパクトにする方法分からなかったからこんな冗長になってる)
-        $stmt = $pdo->prepare('UPDATE queue SET permit = NULL WHERE id IN (SELECT id FROM (SELECT id FROM queue WHERE enter IS NULL AND permit IS NOT NULL AND userid <> :userid ORDER BY start ASC LIMIT 100 OFFSET 2) AS subquery);'); //FIXME OFFSET の後を2じゃなくて適切な値に変更
+        $offset = (int)$remaining;
+        $stmt = $pdo->prepare('UPDATE queue SET permit = NULL WHERE id IN (SELECT id FROM (SELECT id FROM queue WHERE enter IS NULL AND permit IS NOT NULL AND userid <> :userid ORDER BY start ASC LIMIT 100 OFFSET $offset) AS subquery);'); 
         $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
         $stmt->execute();
 
@@ -114,42 +117,37 @@ try {
 
 
     if ($row['COUNT'] === 0) {
-        $stmt = $pdo->prepare("INSERT INTO queue (userid, class) VALUES (:userid, :class)");
-        $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
-        $stmt->bindValue(':class', $class, PDO::PARAM_STR);
-        $stmt->execute();
-        $already = false;//ADD 13日
-    }
-} catch (PDOException $e) {
-    echo $e->getMessage();
-    exit;
-}
+        try {
+            $stmt = $pdo->prepare("INSERT INTO queue (userid, class) VALUES (:userid, :class)");
+            $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
+            $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+            $stmt->execute();
+            $already = false;//ADD 13日
+        } catch (PDOException $e) {
+            echo $e->getMessage();
+            exit;
+        }
 
-try {
-    $stmt = $pdo->prepare('SELECT userid FROM queue WHERE class = :class AND start IS NOT NULL AND enter IS NULL AND permit IS NOT NULL ORDER BY start ASC');
-    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
-    $stmt->execute();
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    if (!$rows) {
-        echo "入れる人数を取得できませんでした";
-        var_dump($class, $remaining);
-        exit;
-    }
-    foreach ($rows as $row) {
-        $limits_id = $row['userid'];
-        if ($limits_id === $userid) {
-            $can_enter = true;
+        try {
+            $stmt = $pdo->prepare('SELECT COUNT(*) AS count FROM queue WHERE enter IS NULL AND class = :class');
+            $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            $waits = $row['count'];
+            /*
+            if ($waits <= $capacity) {
+                $can_enter = true;
+            }*/
+        } catch (PDOException $e) {
+            echo $e->getMessage();
+            exit;
         }
     }
-
-    $limits_count = count($rows);//expect: 1
-
 } catch (PDOException $e) {
     echo $e->getMessage();
     exit;
 }
 
-$over_permit = 0;
 
 if ($remaining > 0) {   //許容範囲計算した後の判定
     try {
@@ -158,12 +156,24 @@ if ($remaining > 0) {   //許容範囲計算した後の判定
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         $permit_count = $row['count'];//expect: 0
-        $limits_count += $permit_count;//expect: 1
-        foreach ($limits_ids as $index => $limit_id) {   //前から許容人数番目(=$limits_count)までにいるかの判定
-            if ($index > $limits_count) {
-                break;
-            }
-            if (!empty($limit_id) && $limit_id['userid'] === $userid) {
+        echo '$permit_count'. "$permit_count <br>";
+        $limits_count += $permit_count;//expect: 0
+        echo '$limits_count' . "$limits_count";
+        try {
+            $stmt = $pdo->prepare('SELECT userid FROM queue WHERE class = :class AND start IS NOT NULL AND enter IS NULL ORDER BY start ASC');
+            $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $limits_ids = $rows;
+
+            $limits_count += count($rows);//expect: 1
+
+        } catch (PDOException $e) {
+            echo $e->getMessage();
+            exit;
+        }
+        for ($index = 0; $index <= $limits_count; $index++) {   //前から許容人数番目(=$limits_count)までにいるかの判定
+            if (isset($limits_ids[$index]) && $limits_ids[$index]['userid'] === $userid) {
                 $can_enter = true;
                 break;
             }
@@ -173,25 +183,26 @@ if ($remaining > 0) {   //許容範囲計算した後の判定
         exit;
     }
 
-    try {
-        $sql = "UPDATE queue SET permit = NOW() WHERE permit IS NULL AND class = :class AND enter IS NULL ORDER BY start ASC LIMIT :remaining";
-        $stmt = $pdo->prepare($sql);
-        $stmt->bindValue(':class', $class, PDO::PARAM_STR);
-        $stmt->bindValue(':remaining', $remaining, PDO::PARAM_INT);
-        $stmt->execute();
-    } catch (PDOException $e) {
-        echo $e->getMessage();
-        exit;
-    }
 
 }
-
 if ($can_enter) {
     try {
         $stmt = $pdo->prepare("UPDATE queue SET enter = NOW() WHERE userid = :userid AND class = :class AND enter IS NULL");
         $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
         $stmt->bindValue(':class', $class, PDO::PARAM_STR);
         $stmt->execute();
+
+        $remaining = $remaining - 1;
+        try {
+            $sql = "UPDATE queue SET permit = NOW() WHERE permit IS NULL AND class = :class AND enter IS NULL ORDER BY start ASC LIMIT :remaining";
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+            $stmt->bindValue(':remaining', $remaining, PDO::PARAM_INT);
+            $stmt->execute();
+        } catch (PDOException $e) {
+            echo $e->getMessage();
+            exit;
+        }
     } catch (PDOException $e) {
         echo $e->getMessage();
         exit;

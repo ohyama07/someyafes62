@@ -39,13 +39,19 @@ try {
     $stmt->bindValue(':class', $class, PDO::PARAM_STR);
     $stmt->execute();
     $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    /*foreach($rows as $row){
+        $result = $row['userid'];
+    }*/
 
     // 入場処理がされていないデータの取得
-    $stmt = $pdo->prepare("SELECT enter FROM queue WHERE enter IS NULL AND userid = :userid AND class = :class");
+    $stmt = $pdo->prepare("SELECT enter, userid FROM queue WHERE enter IS NULL AND userid = :userid AND class = :class");
     $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
     $stmt->bindValue(':class', $class, PDO::PARAM_STR);
     $stmt->execute();
     $nullEnter = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    /*foreach ($rows as $row ){
+        $nullEnter = $row['userid'];
+    }*/
 
     if (empty($result)) {
         echo "予約処理をしてください こちらは出場処理です";

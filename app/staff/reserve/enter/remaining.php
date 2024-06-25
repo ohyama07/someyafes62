@@ -48,7 +48,7 @@ function inRemaining($class)
                 echo "値がありません";
                 return;
             }
-            $permit_count = $row['count'];
+            $permit_count = $row['count'];//入場が許可されている人のカウント
         } catch (PDOException $e) {
             echo $e->getMessage();
             exit;
@@ -59,7 +59,7 @@ function inRemaining($class)
         $remaining = $capacity - $count - $permit_count;
         if ($remaining < 0) {
             $remaining = 0 - $remaining;
-            echo "入場数が{$remaining}人超過しています。定員を追加してください。";
+            echo "入場数が{$remaining}人超過しています。定員を追加してください。<br>";
             return 0;
         }
         return $remaining;

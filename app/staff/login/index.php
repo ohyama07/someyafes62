@@ -23,6 +23,8 @@ if (!isset($_COOKIE['class'])) {
     <br>
     <a href="../reserve/leaving/leaving.php">出場処理ページへ</a>
     <br>
+    <a href="addCapacity.php">定員を確認・更新する</a>
+    <br>
     <a href="logout.php">ログアウトしてログインページへ</a>
     <script>
         let message = document.querySelector("#message");
