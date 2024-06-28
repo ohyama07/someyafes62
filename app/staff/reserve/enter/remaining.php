@@ -33,7 +33,7 @@ function inRemaining($class)
                 echo "値がありません";
                 return;
             }
-            $count = $row['count'];
+            $count = $row['count'];//0
         } catch (PDOException $e) {
             echo $e->getMessage();
             exit;
@@ -48,7 +48,7 @@ function inRemaining($class)
                 echo "値がありません";
                 return;
             }
-            $permit_count = $row['count'];//入場が許可されている人のカウント
+            $permit_count = $row['count'];//入場が許可されている人のカウント //2
         } catch (PDOException $e) {
             echo $e->getMessage();
             exit;

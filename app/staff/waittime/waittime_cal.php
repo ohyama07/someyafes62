@@ -73,14 +73,12 @@ function waittimeCal($class, $userid)
         exit;
     }*/
     $result = "";
-
     if ($waits <= $capacity) {
         $expect_waittime = $avg_waitingtime - $reservingnum;
         $expect_waittime = round($expect_waittime / 60);
         if ($expect_waittime <= 0) {
             $result = "まもなく入場できます";
         } else {
-            $expect_waittime = round($expect_waittime / 60);
             $result = "あと{$expect_waittime}分後に入場できる見込みです";
         }
     } else {

@@ -177,8 +177,6 @@ try {
             position: relative;
             writing-mode: vertical-rl;
             font-size: medium;
-            -webkit-appearance: none;
-            -webkit-border-radius: 0;
             font: inherit;
         }
 
@@ -197,8 +195,6 @@ try {
             position: relative;
             writing-mode: vertical-rl;
             font-size: medium;
-            -webkit-appearance: none;
-            -webkit-border-radius: 0;
             font: inherit;
 
         }

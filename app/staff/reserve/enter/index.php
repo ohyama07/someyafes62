@@ -126,8 +126,6 @@ try {
     $stmt->bindValue('userid', $userid, PDO::PARAM_STR);
     $stmt->execute();
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-
     if ($row['COUNT'] === 0) {
         try {
             $stmt = $pdo->prepare("INSERT INTO queue (userid, class) VALUES (:userid, :class)");
@@ -146,10 +144,6 @@ try {
             $stmt->execute();
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             $waits = $row['count'];
-            /*
-            if ($waits <= $capacity) {
-                $can_enter = true;
-            }*/
         } catch (PDOException $e) {
             echo $e->getMessage();
             exit;
@@ -159,9 +153,46 @@ try {
     echo $e->getMessage();
     exit;
 }
-var_dump($remaining);
+
+try {
+    $stmt = $pdo->prepare('SELECT permit FROM queue WHERE userid = :userid AND enter IS NULL AND class = :class');
+    $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
+    $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    echo $e->getMessage();
+    exit;
+}
 
 if ($remaining > 0) {   //許容範囲計算した後の判定
+    try {
+        $stmt = $pdo->prepare('SELECT COUNT(*) AS count FROM queue WHERE class = :class AND enter IS NOT NULL AND leaving IS NULL');
+        $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $enters = $row['count'];
+        if ($enters = 0) {
+            $can_enter = true;
+        }
+
+        try {
+            $stmt = $pdo->prepare('SELECT capacity FROM class WHERE classname = :class');
+            $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            $capacity = $row['capacity'];
+        } catch (PDOException $e) {
+            echo $e->getMessage();
+            exit;
+        }
+
+        $limits_count = $capacity - $enters;
+    } catch (PDOException $e) {
+        echo $e->getMessage();
+        exit;
+    }
+
     try {
         $stmt = $pdo->prepare('SELECT COUNT(*) AS count FROM queue WHERE class = :class AND enter IS NULL AND permit < NOW() - INTERVAL 5 MINUTE ');//スキップ対象計算
         $stmt->bindValue(':class', $class, PDO::PARAM_STR);
@@ -176,13 +207,13 @@ if ($remaining > 0) {   //許容範囲計算した後の判定
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $limits_ids = $rows;
 
-            $limits_count += count($rows);//expect: 1
+            //$limits_count += count($rows);//expect: 1
 
         } catch (PDOException $e) {
             echo $e->getMessage();
             exit;
         }
-        for ($index = 0; $index <= $limits_count; $index++) {   //前から許容人数番目(=$limits_count)までにいるかの判定
+        for ($index = 0; $index <= $limits_count; $index++) {   //前から許容人数番目(=$limits_count)までにいるかの判定 定員-enterの値
             if (isset($limits_ids[$index]) && $limits_ids[$index]['userid'] === $userid) {
                 $can_enter = true;
                 break;
@@ -202,7 +233,7 @@ if ($can_enter) {
         $stmt->bindValue(':class', $class, PDO::PARAM_STR);
         $stmt->execute();
 
-        $remaining = $remaining - 1;
+        $remaining = inRemaining($class);
         try {
             if ($remaining > 0) {
                 $sql = "UPDATE queue SET permit = NOW() WHERE permit IS NULL AND class = :class AND enter IS NULL ORDER BY start ASC LIMIT :remaining";
