@@ -2,20 +2,21 @@
 require 'config.php';
 include 'remaining.php';
 include 'limited_records.php';
-include '../../waittime/index.php';
-
-$already = true;//MEMO 既にカラムがありますよってこと
-$can_enter = false;
-$remaining = inRemaining($class);
-$limits = inLimited($pdo, $class);
-$offset;
-$limits_count = 0;
+include '../../waittime/waittime_cal.php';
 
 if (!isset($_COOKIE['class'])) {
     header('Location: ../../login/login.php');
     exit;
 }
 $class = $_COOKIE['class'];
+
+$already = true;//MEMO 既にカラムがありますよってこと
+$can_enter = false;
+$remaining = inRemaining($class);
+$limits = inLimited($class);
+$limits_count = 0;
+
+
 // POSTリクエストからuseridを取得し、存在しない場合はエラーメッセージを表示
 if (!isset($_POST['userid'])) {
     echo "IDが見つかりません";
@@ -33,9 +34,19 @@ if (!isset($_POST['userid'])) {
     }, 1500);
     </script>';
     exit;
+} elseif ($_POST['userid'] === NULL || $_POST['userid'] === '') {
+    echo "空文字列を検出しました";
+    echo '<script>
+    setTimeout(function(){
+        window.location.href = "enter.php";
+    }, 1500);
+    </script>';
+    exit;
 } else {
     $userid = $_POST['userid'];
 }
+
+$data = waittimeCal($class, $userid);
 
 try {
     $pdo = new PDO($dsn, $user, $password);
@@ -56,9 +67,10 @@ try {
 
         //2,useridが他と浮気したやつと一致しないかつpermit付与対象でないやつのpermitをNULLにする→permit付与対象を適切にする LIMIT100は大きい値を入れただけ
         //1,2の処理で浮気したやつの次の人にpermitを付与させることを意味する(コンパクトにする方法分からなかったからこんな冗長になってる)
-        $offset = (int)$remaining;
-        $stmt = $pdo->prepare('UPDATE queue SET permit = NULL WHERE id IN (SELECT id FROM (SELECT id FROM queue WHERE enter IS NULL AND permit IS NOT NULL AND userid <> :userid ORDER BY start ASC LIMIT 100 OFFSET $offset) AS subquery);'); 
+
+        $stmt = $pdo->prepare('UPDATE queue SET permit = NULL WHERE id IN (SELECT id FROM (SELECT id FROM queue WHERE enter IS NULL AND permit IS NOT NULL AND userid <> :userid ORDER BY start ASC LIMIT 100 OFFSET :offset) AS subquery);');
         $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
+        $stmt->bindValue(':offset', $remaining, PDO::PARAM_INT);
         $stmt->execute();
 
         $stmt = $pdo->prepare('UPDATE queue SET permit = NULL WHERE userid = :userid AND class <> :class AND permit IS NOT NULL AND enter IS NULL');
@@ -147,7 +159,7 @@ try {
     echo $e->getMessage();
     exit;
 }
-
+var_dump($remaining);
 
 if ($remaining > 0) {   //許容範囲計算した後の判定
     try {
@@ -156,9 +168,7 @@ if ($remaining > 0) {   //許容範囲計算した後の判定
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         $permit_count = $row['count'];//expect: 0
-        echo '$permit_count'. "$permit_count <br>";
         $limits_count += $permit_count;//expect: 0
-        echo '$limits_count' . "$limits_count";
         try {
             $stmt = $pdo->prepare('SELECT userid FROM queue WHERE class = :class AND start IS NOT NULL AND enter IS NULL ORDER BY start ASC');
             $stmt->bindValue(':class', $class, PDO::PARAM_STR);
@@ -194,11 +204,13 @@ if ($can_enter) {
 
         $remaining = $remaining - 1;
         try {
-            $sql = "UPDATE queue SET permit = NOW() WHERE permit IS NULL AND class = :class AND enter IS NULL ORDER BY start ASC LIMIT :remaining";
-            $stmt = $pdo->prepare($sql);
-            $stmt->bindValue(':class', $class, PDO::PARAM_STR);
-            $stmt->bindValue(':remaining', $remaining, PDO::PARAM_INT);
-            $stmt->execute();
+            if ($remaining > 0) {
+                $sql = "UPDATE queue SET permit = NOW() WHERE permit IS NULL AND class = :class AND enter IS NULL ORDER BY start ASC LIMIT :remaining";
+                $stmt = $pdo->prepare($sql);
+                $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+                $stmt->bindValue(':remaining', $remaining, PDO::PARAM_INT);
+                $stmt->execute();
+            }
         } catch (PDOException $e) {
             echo $e->getMessage();
             exit;
@@ -211,10 +223,21 @@ if ($can_enter) {
     echo "入場してください";
 } elseif ($already) {//MEMO $already = true ってことは予約処理済かつ入場できないってこと
     echo "まだ入場できません  もう少しお待ちください<br>";
-    echo waittimeCal($class, $userid);
+    echo $data['result'];
 } else {
     echo "予約しました <br>";
-    echo waittimeCal($class, $userid);
+    echo $data['result'];
+    $expect_waittime = $data['expect_waittime'];
+
+    try {
+        $stmt = $pdo->prepare('UPDATE class SET expecttime = :expecttime WHERE classname = :class');
+        $stmt->bindValue(':expecttime', $expect_waittime, PDO::PARAM_INT);
+        $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+        $stmt->execute();
+    } catch (PDOException $e) {
+        echo $e->getMessage();
+        exit;
+    }
 }
 
 echo "<br>3秒後に元のページに戻ります";

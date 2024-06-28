@@ -3,6 +3,11 @@ if (!isset($_COOKIE['class'])) {
     header('Location: ../../login/login.php');
     exit;
 }
+
+if ($_COOKIE['class'] === "2年4組") {
+    header('Location: ../../twofour/enter.html');
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="ja">
@@ -17,6 +22,33 @@ if (!isset($_COOKIE['class'])) {
             display: none;
         }
 
+        #wrapper {
+            position: relative;
+        }
+        #video {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #camera-canvas,
+        #rect-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #resultForm {
+            display: flex;
+            justify-content: center;
+            position: relative; /* relativeに変更 */
+            top: 50px; /* canvas要素の高さに合わせて調整 */
+            margin-top: 10px; /* 適切なスペースを追加 */
+        }
+        #serch {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
         .button {
             position: fixed;
             bottom: 0;
@@ -24,29 +56,12 @@ if (!isset($_COOKIE['class'])) {
             text-align: center;
             padding: 10px;
             background-color: #f5f5f5;
-            /* 必要に応じて背景色を設定 */
             box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
         }
-
-        #wrapper {
-            position: relative;
-        }
-
-        #video,
-        #camera-canvas,
-        #rect-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-
-        #resultForm {
-            position: absolute;
-            top: 480px;
-            /* canvasの高さに合わせて調整 */
-            left: 0;
-            z-index: 200;
-            /* 必要に応じてz-indexを調整 */
+        @media screen and (max-width: 500px) {
+            #resultForm {
+                display: flex;
+            }
         }
     </style>
 </head>
@@ -59,7 +74,7 @@ if (!isset($_COOKIE['class'])) {
         <canvas id="rect-canvas"></canvas>
 
         <form action="index.php" method="POST" id="resultForm">
-            QRコード: <output id="search"></output>
+            ID: <output id="search"></output>
             <input type="text" name="userid" id="userid">
         </form>
     </div>
@@ -68,8 +83,9 @@ if (!isset($_COOKIE['class'])) {
     <video id="video" width="640" height="480" autoplay></video>
 
     <div class="button">
-        <button type="button" id="go" name="go">定員追加ページへ</button>
+        <!--<button type="button" id="go" name="go">定員追加ページへ</button>-->
         <button type="button" id="back" name ="back">スタッフメインページへ</button>
+        <button type="button" id="capa" name="capa">定員確認ページへ</button>
     </div>
     <script>
         // Webカメラの起動
@@ -149,15 +165,19 @@ if (!isset($_COOKIE['class'])) {
 
         setInterval(checkImage, 250);
 
-        let go = document.querySelector("#go");
+        /*let go = document.querySelector("#go");
         go.addEventListener('click', () => {
             window.location.href = 'addCapacity.html';
-        })
+        })*/
         let back = document.querySelector("#back");
         back.addEventListener('click', () => {
             window.location.href = '../../login/index.php';
         })
 
+        let capa = document.querySelector("#capa");
+        capa.addEventListener('click', () => {
+            window.location.href = '../../login/addCapacity.php';
+        })
 
 
         // 四辺形の描画

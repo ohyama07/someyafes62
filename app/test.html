@@ -2,52 +2,175 @@
 <html lang="ja">
 
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <style>
-        .container {
+    <title>QRコード生成</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.js"></script>
+    <style> body {
             display: flex;
-            justify-content: space-between;
-            /* アイテムを左右に均等に配置する */
+            flex-direction: column;
             align-items: center;
-            /* アイテムを垂直方向に中央揃えする */
-            height: 200px;
-            /* 必要に応じて高さを設定 */
-            padding: 0 20px;
-            /* コンテナの左右に余白を追加 */
+            justify-content: center;
+            height: 100vh; /* 画面全体の高さに合わせるために追加 */
+            margin: 0; /* デフォルトのマージンを削除 */
+            font-family: Arial, sans-serif; /* フォントの指定 */
         }
 
-        .item {
-            font-size: 18px;
-            /* テキストのフォントサイズを設定 */
-            padding: 10px;
-            /* テキストの内側の余白を設定 */
-            border: 1px solid #ccc;
-            /* 枠線を追加 */
-            padding-top: 100px;
-            padding-bottom: 100px;
+        #container {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            width: 100%; /* コンテンツの幅を100%にする */
+            max-width: 800px; /* 最大幅を設定（必要に応じて調整） */
+            padding: 20px; /* コンテナの内側のパディング */
         }
 
-        .left {
-            order: 1;
-            /* 左側のアイテムを先頭に配置 */
+        #qr {
+            margin-right: 20px; /* QRコードの右側に隙間を設ける */
         }
 
-        .right {
-            order: 2;
-            /* 右側のアイテムを2番目に配置 */
+        #goForm {
+            margin-left: 20px; /* フォームの左側に隙間を設ける */
+        }
+
+        #go {
+            background-color: white;
+            border: 1px solid black;
+            box-shadow: 1px 2px 3px black;
+            height: 400px; /* ボタンの高さ */
+            width: 50px; /* ボタンの幅 */
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            writing-mode: vertical-rl; /* ボタンのテキストの方向 */
+            font-size: medium;
+            transition: transform 0.3s ease; /* ホバー時のアニメーション */
+        }
+
+        #right {
+            font-size: 30px;
+            display: inline-block;
+            margin: 10px;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="item left">戻る</div>
-        <div class="item right">先へ</div>
+    <h1>QRコード生成</h1>
+    <div class="qrblock"></div>
+    <div id="from-cookie"></div>
+    <div id="qrOutput"></div>
+    <div>
+        <p id="qrString"></p>
     </div>
+    <canvas id="qr"></canvas>
+    <p id="qrText"></p>
+    <div><img id="newImg"></div>
+    </div>
+    <form action="../../main/index.php" id="goForm">
+        <button type="submit" id="go">メインページへ <span id="right">^</span></button>
+    </form>
+
+    <script>
+        let cookie = document.cookie;
+        let query = 0;
+        let userid = "<?php echo $userid ?>";
+        document.addEventListener('DOMContentLoaded', () => {
+            query = userid.split(' ').join('+');
+            let qr = new QRious({
+                element: document.getElementById('qr'),
+                value: query
+            });
+
+            //ID出力用コード
+            document.getElementById('qrText').textContent = `あなたのIDは <?php echo $seeable_id ?> です`;
+            qr.background = '#FFF';
+            qr.backgroundAlpha = 0.8;
+            qr.foreground = '#000000';
+            qr.foregroundAlpha = 1.0;
+            qr.level = 'L';
+            qr.size = 240;
+            // png出力用コード
+            let cvs = userid;
+            let png = cvs.toDataURL();
+            document.getElementById("newImg").src = png;
+
+            // PNGをサーバーに送信
+            fetch('save_session.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ png: png })
+            })
+                .then(response => response.text())
+                .then(data => {
+                    console.log('Success:', data);
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+
+            document.getElementById('go').addEventListener('click', (event) => {
+                event.preventDefault(); // デフォルトのフォーム送信を防止
+                const rightSpan = document.getElementById('right');
+                rightSpan.style.transform = 'translateX(40px)'; // 右に40px移動
+
+                // 2秒後にフォームを送信
+                setTimeout(() => {
+                    document.getElementById('goForm').submit();
+                }, 700);
+            });
 
 
+        });
+
+    </script>
+
+    <style>
+        /*#qrOutput {
+        display: none;
+    }*/
+        p.qrblock {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            /* viewportの高さに合わせる */
+            text-align: center;
+        }
+
+        p.qrcomment {
+            background: #eff1f5;
+            text-align: center;
+            color: #707070;
+            padding: 7px 35px 8px;
+            border-radius: 9999px;
+            display: inline-block;
+            margin: 0 0 25px;
+            position: relative;
+        }
+
+        p.qrcomment:after {
+            content: "";
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            margin-left: -15px;
+            border: 15px solid transparent;
+            border-top: 15px solid #eff1f5;
+            z-index: 1;
+        }
+
+        #qrOutput {
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-around;
+            padding: 20px;
+        }
+    </style>
 </body>
 
 </html>

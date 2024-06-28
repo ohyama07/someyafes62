@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>入場ページ</title>
+    <style>
+        h1 {
+            text-align: center;
+        }
+
+        .buttons {
+            display: flex;
+            align-items: center;
+        }
+
+        #reserve,
+        #enter {
+            width: 100%;
+            height: 500px;
+            margin: 10px;
+            font-size: larger;
+            cursor: pointer;
+        }
+
+        @media screen and (max-width: 500px) {
+
+            #reserve,
+            #enter {
+                width: 100%;
+                height: 400px;
+                margin: 10px;
+                font-size: larger;
+                cursor: pointer;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>入場処理</h1>
+    <form action="index.php" method="POST" id="myForm" name="myForm">
+        <div class="buttons">
+            <button type="submimt" id="reserve" name="action" value="reserve">予約</button>
+            <button type="submimt" id="enter" name="action" value="enter">入場</button>
+        </div>
+    </form>
+
+    <script>
+        document.querySelector("#reserve").addEventListener('click', () => {
+            if (confirm('予約させますか？')) {
+                document.querySelector("#myForm").submit();
+            } else {
+                event.preventDefault();
+            }
+        })
+        document.querySelector("#enter").addEventListener('click', () => {
+            if (confirm('入場させますか？')) {
+                document.querySelector("#myForm").submit();
+            } else {
+                event.preventDefault();
+            }
+        })
+    </script>
+</body>
+
+</html>

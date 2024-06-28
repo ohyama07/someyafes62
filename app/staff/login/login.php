@@ -17,7 +17,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bindValue(':class', $class, PDO::PARAM_STR);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        $capacity = $row['capacity'];
+        if ($row) {
+            $capacity = $row['capacity'];
+        } else {
+            echo "定員を取得できませんでした";
+        }
     } catch (PDOException $e) {
         echo $e->getMessage();
     }
@@ -42,7 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     } else {
         setcookie("class", $row['username'], time() + 86400, "/"); // 有効期限は1日
-        if ($capacity !== 0) {
+        if ($class === "2年4組") {
+            header('Location: twofour.php');
+            exit;
+        } elseif ($capacity !== 0) {
             header('Location: addCapacity.php');
             exit;
         } else {
@@ -50,7 +57,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
+
+
     }
+
+
 }
 ?>
 <!DOCTYPE html>

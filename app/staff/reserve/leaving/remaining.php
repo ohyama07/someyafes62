@@ -14,7 +14,7 @@ try {
     $stmt->execute(); 
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$row) {
-        echo "定員を取得できませんでした";
+        echo "定員を取得できませんでした2";
         return;
     }
     $capacity = $row['capacity'];

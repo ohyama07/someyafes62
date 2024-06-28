@@ -1,3 +1,9 @@
+<?php
+if ($_COOKIE['class'] === "2年4組") {
+    header('Location: ../../twofour/leaving.html');
+}
+
+?>
 <!DOCTYPE html>
 <html lang="ja">
 
@@ -10,24 +16,30 @@
         #wrapper {
             position: relative;
         }
+        #video {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
 
-        #video,
         #camera-canvas,
         #rect-canvas {
             position: absolute;
             top: 0;
             left: 0;
         }
-
         #resultForm {
-            position: absolute;
-            top: 480px;
-            /* canvasの高さに合わせて調整 */
-            left: 0;
-            z-index: 200;
-            /* 必要に応じてz-indexを調整 */
+            display: flex;
+            justify-content: center;
+            position: relative; /* relativeに変更 */
+            top: 50px; /* canvas要素の高さに合わせて調整 */
+            margin-top: 10px; /* 適切なスペースを追加 */
         }
-
+        #serch {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
         .button {
             position: fixed;
             bottom: 0;
@@ -35,9 +47,15 @@
             text-align: center;
             padding: 10px;
             background-color: #f5f5f5;
-            /* 必要に応じて背景色を設定 */
             box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
         }
+        @media screen and (max-width: 500px) {
+            #resultForm {
+                display: flex;
+            }
+        }
+
+        
     </style>
 </head>
 
@@ -49,7 +67,7 @@
         <canvas id="rect-canvas"></canvas>
 
         <form action="index.php" method="POST" id="resultForm">
-            QRコード: <output id="search"></output>
+            ID: <output id="search"></output>
             <input type="text" name="userid" id="userid">
         </form>
     </div>
@@ -117,7 +135,6 @@
             } else {
             }
         });
-        //FIXME スマホ対応させましょう
 
 
         const checkImage = () => {

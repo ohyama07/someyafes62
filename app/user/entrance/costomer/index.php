@@ -20,37 +20,62 @@ $seeable_id = $_COOKIE['seeable_id'];
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QRコード生成</title>
+    <title>来場者用</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.js"></script>
     <style>
-        .link {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
+        .wrap {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #go {
+            background-color: white;
+            border: 1px solid black;
+            box-shadow: 1px 2px 3px black;
+            height: 400px;
+            width: 50px;
+            /* 幅を広げて表示 */
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 20px;
+            position: relative;
+            writing-mode: vertical-rl;
+            font-size: medium;
+        }
+
+        #right {
+            font-size: 30px;
+            display: inline-block;
+            transition: transform 0.3s ease;
+            margin: 10px;
+            margin-right: 20px;
+        }
+
+        #qrText {
             text-align: center;
-            padding: 10px;
-            background-color: #f5f5f5;
-            /* 必要に応じて背景色を設定 */
-            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
 
 <body>
     <h1>QRコード生成</h1>
-    <div class="qrblock"></div>
-    <div id="from-cookie"></div>
-    <div id="qrOutput"></div>
-    <div>
-        <p id="qrString"></p>
+    <div class="wrap">
+        <div class="qrblock"></div>
+        <div id="from-cookie"></div>
+        <div id="qrOutput"></div>
+        <div>
+            <p id="qrString"></p>
+        </div>
+        <canvas id="qr"></canvas>
+        <div><img id="newImg"></div>
+        <form action="../../main/index.php" method="POST" id="goForm">
+            <button type="submit" id="go">メインページへ <span id="right">^</span></button>
+        </form>
     </div>
-    <canvas id="qr"></canvas>
     <p id="qrText"></p>
-    <div><img id="newImg"></div>
-    </div>
-    <div class="link">
-        <a href="../../main/index.php">メインページへ行く</a>
-    </div>
     <script>
         let cookie = document.cookie;
         let query = 0;
@@ -83,14 +108,24 @@ $seeable_id = $_COOKIE['seeable_id'];
                 },
                 body: JSON.stringify({ png: png })
             })
-            .then(response => response.text())
-            .then(data => {
-                console.log('Success:', data);
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-            });
+                .then(response => response.text())
+                .then(data => {
+                    console.log('Success:', data);
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
 
+            document.getElementById('go').addEventListener('click', (event) => {
+                event.preventDefault(); // デフォルトのフォーム送信を防止
+                const rightSpan = document.getElementById('right');
+                rightSpan.style.transform = 'translateX(40px)'; // 右に40px移動
+
+                // 2秒後にフォームを送信
+                setTimeout(() => {
+                    document.getElementById('goForm').submit();
+                }, 700);
+            });
         });
 
     </script>

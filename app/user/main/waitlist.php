@@ -125,6 +125,8 @@
 <h1>待ち時間一覧</h1>
 
 <body>
+    
+<a href="index.php">メインページへ</a>
     <table>
         <thead>
             <tr>
@@ -156,7 +158,6 @@
             ?>
         </tbody>
     </table>
-    <a href="index.php";>メインページへ</a>
 </body>
 
 </html>

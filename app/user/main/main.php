@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="table.css">
-    <title>待ち時間一括表示させるとこ</title>
+    <title>待ち時間一括表示</title>
     <style>
         h1 {
             font-size: 40px;

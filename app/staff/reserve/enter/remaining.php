@@ -2,7 +2,7 @@
 function inRemaining($class)
 {
     require 'config.php';
-
+    global $dsn, $user, $password;
     //$class = $_COOKIE['class'];
 
     try {
@@ -15,7 +15,7 @@ function inRemaining($class)
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) {
-            echo "定員を取得できませんでした";
+            echo "定員を取得できませんでした1";
             return;
         }
         $capacity = $row['capacity'];
@@ -59,7 +59,6 @@ function inRemaining($class)
         $remaining = $capacity - $count - $permit_count;
         if ($remaining < 0) {
             $remaining = 0 - $remaining;
-            echo "入場数が{$remaining}人超過しています。定員を追加してください。<br>";
             return 0;
         }
         return $remaining;

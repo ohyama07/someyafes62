@@ -17,3 +17,10 @@ try {
 }
 echo "定員を1追加しました";
 
+echo "<br>3秒後に元のページに戻ります";
+echo '<script>
+        setTimeout(function(){
+            window.location.href = "enter.php";
+        }, 3000);
+        </script>';
+

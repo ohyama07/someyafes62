@@ -10,7 +10,11 @@ function waittimeCal($class, $userid)
         $stmt->bindValue(':class', $class, PDO::PARAM_STR);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        $capacity = $row['capacity'];
+        if ($row) {
+            $capacity = $row['capacity'];
+        } else {
+            echo "定員を取得できませんでした3";
+        }
     } catch (PDOException $e) {
         echo $e->getMessage();
         exit;
@@ -24,7 +28,7 @@ function waittimeCal($class, $userid)
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) {
-            $reservingnum = 0;
+            $reservingnum = 0;//0
         } else {
             $reservingnum = $row['duration'];//現在時刻から何分経ったかってこと
         }
@@ -35,7 +39,7 @@ function waittimeCal($class, $userid)
         $stmt->bindValue(':class', $class, PDO::PARAM_STR);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        $avg_waitingtime = $row['avg_waitingtime'];
+        $avg_waitingtime = $row['avg_waitingtime'];//366
 
     } catch (PDOException $e) {
         echo $e->getMessage();
@@ -43,12 +47,17 @@ function waittimeCal($class, $userid)
     }
 
     try {
-        $stmt = $pdo->prepare('SELECT row_no FROM (SELECT userid, ROW_NUMBER() OVER (ORDER BY start ASC) AS row_no FROM queue WHERE class = :class) AS ranked_queue WHERE userid = :userid');
+        $stmt = $pdo->prepare('SELECT row_no FROM (SELECT userid, enter, ROW_NUMBER() OVER (ORDER BY start ASC) AS row_no FROM queue WHERE class = :class) AS ranked_queue WHERE userid = :userid AND enter IS NULL');
         $stmt->bindValue(':class', $class, PDO::PARAM_STR);
         $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        $waits = $row['row_no'];
+        if ($row) {
+            $waits = $row['row_no'];
+        } else {
+            $waits = 0;//
+            
+        }
     } catch (PDOException $e) {
         echo $e->getMessage();
         exit;
@@ -63,35 +72,22 @@ function waittimeCal($class, $userid)
         echo $e->getMessage();
         exit;
     }*/
+    $result = "";
 
     if ($waits <= $capacity) {
         $expect_waittime = $avg_waitingtime - $reservingnum;
-        $expect_waittime = round($expect_waittime);
+        $expect_waittime = round($expect_waittime / 60);
         if ($expect_waittime <= 0) {
-            echo "まもなく入場できます";
+            $result = "まもなく入場できます";
         } else {
             $expect_waittime = round($expect_waittime / 60);
-            echo "あと{$expect_waittime}分後に入場できる見込みです";
+            $result = "あと{$expect_waittime}分後に入場できる見込みです";
         }
     } else {
         $expect_waittime = $avg_waitingtime * $waits / $capacity / 60;
         $expect_waittime = round($expect_waittime);
-        echo "あと{$expect_waittime}分後に入場できる見込みです";
+        $result = "あと{$expect_waittime}分後に入場できる見込みです";
     }
 
-    try {
-        $stmt = $pdo->prepare('SELECT expecttime FROM class WHERE classname = :class');
-        $stmt->bindValue(':class', $class, PDO::PARAM_STR);
-        $stmt->execute();
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($expect_waittime > $row['expecttime']) {
-            $stmt = $pdo->prepare('UPDATE class SET expecttime = :expecttime WHERE classname = :class');
-            $stmt->bindValue(':expecttime', $expect_waittime, PDO::PARAM_INT);
-            $stmt->bindValue(':class', $class, PDO::PARAM_STR);
-            $stmt->execute();
-        }
-    } catch (PDOException $e) {
-        echo $e->getMessage();
-        exit;
-    }
+    return ['expect_waittime' => $expect_waittime, 'result' => $result];
 }
