@@ -251,6 +251,7 @@ try {
                 position: relative;
                 writing-mode: vertical-rl;
                 font-size: medium;
+                font: inherit;
             }
 
             #go {
@@ -268,6 +269,7 @@ try {
                 position: relative;
                 writing-mode: vertical-rl;
                 font-size: medium;
+                font: inherit;
             }
 
         }
