@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($class === "2年4組") {
             header('Location: twofour.php');
             exit;
-        } elseif ($capacity !== 0) {
+        } elseif ($capacity === 0) {
             header('Location: addCapacity.php');
             exit;
         } else {

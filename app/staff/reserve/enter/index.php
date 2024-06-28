@@ -46,8 +46,6 @@ if (!isset($_POST['userid'])) {
     $userid = $_POST['userid'];
 }
 
-$data = waittimeCal($class, $userid);
-
 try {
     $pdo = new PDO($dsn, $user, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -55,29 +53,32 @@ try {
     $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
     $stmt->bindValue('class', $class, PDO::PARAM_STR);
     $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     if ($row) {
-        //浮気したやつ(のpermit)を消す処理
-        //1,useridが一致しない、入場処理したクラスとは違うクラスの昇順上からremaining番目まで(今回は2番目)を取ってきてpermitを代入
-        $stmt = $pdo->prepare('UPDATE queue SET permit = NOW() WHERE id IN (SELECT id FROM (SELECT id FROM queue WHERE class <> :class AND enter IS NULL AND permit IS NULL AND userid <> :userid ORDER BY start ASC LIMIT :remaining)AS subquery)');
-        $stmt->bindValue(':class', $class, PDO::PARAM_STR);
-        $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
-        $stmt->bindValue(':remaining', $remaining, PDO::PARAM_INT);
-        $stmt->execute();
+        foreach ($rows as $row) {
+            $exclass = $row['class'];
+            //浮気したやつ(のpermit)を消す処理
+            //1,useridが一致しない、入場処理したクラスとは違うクラスの昇順上からremaining番目まで(今回は2番目)を取ってきてpermitを代入
+            $stmt = $pdo->prepare('UPDATE queue SET permit = NOW() WHERE id IN (SELECT id FROM (SELECT id FROM queue WHERE class = :class AND enter IS NULL AND permit IS NULL AND userid <> :userid ORDER BY start ASC LIMIT :remaining)AS subquery)');
+            $stmt->bindValue(':class', $exclass, PDO::PARAM_STR);
+            $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
+            $stmt->bindValue(':remaining', $remaining, PDO::PARAM_INT);
+            $stmt->execute();
 
-        //2,useridが他と浮気したやつと一致しないかつpermit付与対象でないやつのpermitをNULLにする→permit付与対象を適切にする LIMIT100は大きい値を入れただけ
-        //1,2の処理で浮気したやつの次の人にpermitを付与させることを意味する(コンパクトにする方法分からなかったからこんな冗長になってる)
+            //2,useridが他と浮気したやつと一致しないかつpermit付与対象でないやつのpermitをNULLにする→permit付与対象を適切にする LIMIT100は大きい値を入れただけ
+            //1,2の処理で浮気したやつの次の人にpermitを付与させることを意味する(コンパクトにする方法分からなかったからこんな冗長になってる)
 
-        $stmt = $pdo->prepare('UPDATE queue SET permit = NULL WHERE id IN (SELECT id FROM (SELECT id FROM queue WHERE enter IS NULL AND permit IS NOT NULL AND userid <> :userid ORDER BY start ASC LIMIT 100 OFFSET :offset) AS subquery);');
-        $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
-        $stmt->bindValue(':offset', $remaining, PDO::PARAM_INT);
-        $stmt->execute();
+            $stmt = $pdo->prepare('UPDATE queue SET permit = NULL WHERE id IN (SELECT id FROM (SELECT id FROM queue WHERE enter IS NULL AND permit IS NOT NULL AND userid <> :userid ORDER BY start ASC LIMIT 100 OFFSET :offset) AS subquery);');
+            $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
+            $stmt->bindValue(':offset', $remaining, PDO::PARAM_INT);
+            $stmt->execute();
 
-        $stmt = $pdo->prepare('UPDATE queue SET permit = NULL WHERE userid = :userid AND class <> :class AND permit IS NOT NULL AND enter IS NULL');
-        $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
-        $stmt->bindValue(':class', $class, PDO::PARAM_STR);
-        $stmt->execute();
-        //3,他クラスに浮気したやつのpermitを削除する
+            $stmt = $pdo->prepare('UPDATE queue SET permit = NULL WHERE userid = :userid AND class = :class AND permit IS NOT NULL AND enter IS NULL');
+            $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
+            $stmt->bindValue(':class', $exclass, PDO::PARAM_STR);
+            $stmt->execute();
+            //3,他クラスに浮気したやつのpermitを削除する
+        }
     }
 
 } catch (PDOException $e) {
@@ -201,24 +202,32 @@ if ($remaining > 0) {   //許容範囲計算した後の判定
         $permit_count = $row['count'];//expect: 0
         $limits_count += $permit_count;//expect: 0
         try {
-            $stmt = $pdo->prepare('SELECT userid FROM queue WHERE class = :class AND start IS NOT NULL AND enter IS NULL ORDER BY start ASC');
+            $stmt = $pdo->prepare('SELECT userid FROM queue WHERE class = :class AND start IS NOT NULL AND enter IS NULL ORDER BY start ASC LIMIT :limits');
             $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+            $stmt->bindValue(':limits', $limits_count, PDO::PARAM_INT);
             $stmt->execute();
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            $limits_ids = $rows;
+            if ($rows) {
+                foreach ($rows as $row) {
+                    if ($row['userid'] === $userid) {
+                        $can_enter = true;
+                        break;
+                    }
+                }
+            }
 
             //$limits_count += count($rows);//expect: 1
 
         } catch (PDOException $e) {
             echo $e->getMessage();
             exit;
-        }
-        for ($index = 0; $index <= $limits_count; $index++) {   //前から許容人数番目(=$limits_count)までにいるかの判定 定員-enterの値
-            if (isset($limits_ids[$index]) && $limits_ids[$index]['userid'] === $userid) {
-                $can_enter = true;
-                break;
-            }
-        }
+        }/*
+     for ($index = 0; $index <= $limits_count; $index++) {   //前から許容人数番目(=$limits_count)までにいるかの判定 定員-enterの値
+         if (isset($limits_ids[$index]) && $limits_ids[$index]['userid'] === $userid) {
+             $can_enter = true;
+             break;
+         }
+     }*/
     } catch (PDOException $e) {
         echo $e->getMessage();
         exit;
@@ -226,6 +235,9 @@ if ($remaining > 0) {   //許容範囲計算した後の判定
 
 
 }
+
+$data = waittimeCal($class, $userid);
+$sign = false;
 if ($can_enter) {
     try {
         $stmt = $pdo->prepare("UPDATE queue SET enter = NOW() WHERE userid = :userid AND class = :class AND enter IS NULL");
@@ -233,7 +245,23 @@ if ($can_enter) {
         $stmt->bindValue(':class', $class, PDO::PARAM_STR);
         $stmt->execute();
 
-        $remaining = inRemaining($class);
+
+        try {
+            $stmt = $pdo->prepare('SELECT COUNT(*) AS count FROM queue WHERE permit IS NOT NULL AND enter IS NULL AND class = :class');
+            $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row) {
+                echo "値がありません";
+                return;
+            }
+            $permit_count = $row['count'];//入場が許可されている人のカウント
+        } catch (PDOException $e) {
+            echo $e->getMessage();
+            exit;
+        }
+
+        $remaining = inRemaining($class) - $permit_count;
         try {
             if ($remaining > 0) {
                 $sql = "UPDATE queue SET permit = NOW() WHERE permit IS NULL AND class = :class AND enter IS NULL ORDER BY start ASC LIMIT :remaining";
@@ -252,9 +280,11 @@ if ($can_enter) {
     }
 
     echo "入場してください";
+    $sign = true;
 } elseif ($already) {//MEMO $already = true ってことは予約処理済かつ入場できないってこと
     echo "まだ入場できません  もう少しお待ちください<br>";
     echo $data['result'];
+
 } else {
     echo "予約しました <br>";
     echo $data['result'];
@@ -271,12 +301,15 @@ if ($can_enter) {
     }
 }
 
+if ($sign) {
+    $imagePath = "marusign.png";
+    $imageAlt = "まる。";
+} else {
+    $imagePath = "batusign.png";
+    $imageAlt = "ばつ。";
+}
+
 echo "<br>3秒後に元のページに戻ります";
-echo '<script>
-        setTimeout(function(){
-            window.location.href = "enter.php";
-        }, 3000);
-        </script>';
 
 //一般公開終了間近になったら一般客を優先させる処理
 try {
@@ -290,3 +323,27 @@ try {
 
 
 //MEMO 出てこない人がいたら定員を一時的に手動で増やせるようにすればいい→別ページに乗っける(noticeはいらないかな)　別にフィールドを設けてプラスマイナスをわかりやすくさせることにする
+?>
+
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+
+    <img src="<?php echo htmlspecialchars($imagePath); ?>" alt="<?php echo htmlspecialchars($imageAlt); ?>"
+        style="max-width:100%; height:auto; opacity: 0.7;">
+
+    <script>
+        setTimeout(function () {
+            window.location.href = "enter.php";
+        }, 3000);
+    </script>
+
+</body>
+
+</html>

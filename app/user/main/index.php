@@ -115,9 +115,6 @@ try {
             align-items: center;
             text-align: center;
             margin: 0;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
         }
 
         h1 {
@@ -164,6 +161,7 @@ try {
 
         #go {
             background-color: white;
+            color: black;
             border: 1px solid black;
             box-shadow: 1px 2px 3px black;
             height: 400px;
@@ -182,6 +180,7 @@ try {
 
         #back {
             background-color: white;
+            color: black;
             border: 1px solid black;
             box-shadow: 1px 2px 3px black;
             height: 400px;
@@ -220,6 +219,7 @@ try {
         }
 
         #right {
+            color: black;
             font-size: 30px;
             display: inline-block;
             transition: transform 0.3s ease;
@@ -228,15 +228,19 @@ try {
         }
 
         #left {
-            font-size: 15px;
+            color: black;
+            font-size: 20px;
             font-weight: bolder;
             margin: 10px;
             display: inline-block;
             transition: transform 0.3s ease;
         }
 
+
+
         @media screen and (max-width: 500px) {
             #back {
+                color: black;
                 background-color: white;
                 border: 1px solid black;
                 box-shadow: 1px 2px 3px black;
@@ -251,11 +255,11 @@ try {
                 position: relative;
                 writing-mode: vertical-rl;
                 font-size: medium;
-                font: inherit;
             }
 
             #go {
                 background-color: white;
+                color: black;
                 border: 1px solid black;
                 box-shadow: 1px 2px 3px black;
                 height: 30%;
@@ -269,7 +273,6 @@ try {
                 position: relative;
                 writing-mode: vertical-rl;
                 font-size: medium;
-                font: inherit;
             }
 
         }
@@ -304,8 +307,8 @@ try {
             </form>
         </div>
     </div>
-    <p id="discription">入場中です。というのは入場してるけど出場処理をしていないときに表示されます。<br> 入場したクラスで出場処理をするか、他クラスで入場処理をしてください。 <br>
-        （なるべく出場処理をしてください。）</p>
+    <p id="discription"><a href="../../explain.html" >　使い方ガイドはこちらから　</a></p>
+
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <script>document.addEventListener('DOMContentLoaded', () => {

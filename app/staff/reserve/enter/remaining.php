@@ -39,24 +39,11 @@ function inRemaining($class)
             exit;
         }
         
-        try {
-            $stmt = $pdo->prepare('SELECT COUNT(*) AS count FROM queue WHERE permit IS NOT NULL AND enter IS NULL AND class = :class');
-            $stmt->bindValue(':class', $class, PDO::PARAM_STR);
-            $stmt->execute();
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            if (!$row) {
-                echo "値がありません";
-                return;
-            }
-            $permit_count = $row['count'];//入場が許可されている人のカウント //2
-        } catch (PDOException $e) {
-            echo $e->getMessage();
-            exit;
-        }
+      
 
         
         // 定員の値とカウントした値を引き算する
-        $remaining = $capacity - $count - $permit_count;
+        $remaining = $capacity - $count;
         if ($remaining < 0) {
             $remaining = 0 - $remaining;
             return 0;

@@ -7,6 +7,7 @@ if (!isset($_COOKIE['class'])) {
     exit;
 }
 $class = $_COOKIE['class'];
+$sign = false;
 
 // POSTリクエストからuseridを取得し、存在しない場合はエラーメッセージを表示
 if (!isset($_POST['userid'])) {
@@ -32,7 +33,7 @@ if (!isset($_POST['userid'])) {
 try {
     $pdo = new PDO($dsn, $user, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
+
     // 入場しているが退出していないデータの取得
     $stmt = $pdo->prepare("SELECT * FROM queue WHERE userid = :userid AND class = :class AND leaving IS NULL");
     $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
@@ -76,16 +77,28 @@ try {
         $stmt->bindValue(':class', $class, PDO::PARAM_STR);
         $stmt->execute();
         echo "ありがとうございました";
-        echo '<script>
-        setTimeout(function(){
-            window.location.href = "leaving.php";
-        }, 1500);
-        </script>';
+        $sign = true;
     }
 
     // 残りの処理
-    $remaining = inRemaining($class);
-    $stmt = $pdo->prepare('UPDATE queue SET permit = NOW() WHERE class = :class AND permit IS NULL AND enter IS NULL ORDER BY start ASC LIMIT ' . (int)$remaining);
+    try {
+        $stmt = $pdo->prepare('SELECT COUNT(*) AS count FROM queue WHERE permit IS NOT NULL AND enter IS NULL AND class = :class');
+        $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            echo "値がありません";
+            return;
+        }
+        $permit_count = $row['count'];//入場が許可されている人のカウント
+    } catch (PDOException $e) {
+        echo $e->getMessage();
+        exit;
+    }
+
+    $remaining = inRemaining($class) - $permit_count;
+
+    $stmt = $pdo->prepare('UPDATE queue SET permit = NOW() WHERE class = :class AND permit IS NULL AND enter IS NULL ORDER BY start ASC LIMIT ' . (int) $remaining);
     $stmt->bindValue(':class', $class, PDO::PARAM_STR);
     $stmt->execute();
 
@@ -93,10 +106,33 @@ try {
     echo "エラー: " . $e->getMessage();
     exit;
 }
+if($sign) {
+    $imagePath = "marusign.png";
+    $imageAlt = "まる。";
+}
 
 echo "<br>3秒後に元のページに戻ります";
-echo '<script>
-        setTimeout(function(){
+
+?>
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+
+    <img src="<?php echo htmlspecialchars($imagePath); ?>" alt="<?php echo htmlspecialchars($imageAlt); ?>"
+        style="max-width:100%; height:auto; opacity: 0.7;">
+
+    <script>
+        setTimeout(function () {
             window.location.href = "leaving.php";
         }, 3000);
-        </script>';
+    </script>
+
+</body>
+
+</html>

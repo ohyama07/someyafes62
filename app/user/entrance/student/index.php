@@ -33,6 +33,7 @@ $seeable_id = $_COOKIE['seeable_id'];
         }
 
         #go {
+            color: black;
             background-color: white;
             border: 1px solid black;
             box-shadow: 1px 2px 3px black;
@@ -50,6 +51,7 @@ $seeable_id = $_COOKIE['seeable_id'];
         }
 
         #right {
+            color: black;
             font-size: 30px;
             display: inline-block;
             transition: transform 0.3s ease;

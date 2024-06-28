@@ -55,7 +55,7 @@ function waittimeCal($class, $userid)
         if ($row) {
             $waits = $row['row_no'];
         } else {
-            $waits = 0;//
+            $waits = 0;
             
         }
     } catch (PDOException $e) {

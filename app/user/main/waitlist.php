@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="table.css">
-    <title>待ち時間一括表示させるとこ</title>
+    <title>待ち時間一括表示</title>
     <style>
         h1 {
             font-size: 40px;
@@ -65,6 +65,9 @@
 
         .price {
             text-align: right;
+        }
+        h1 {
+            text-align: center;
         }
 
         @media screen and (max-width: 600px) {
@@ -145,7 +148,7 @@
                 $stmt->execute();
                 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 foreach ($rows as $row) {
-                    $classwaittime = ceil($row['expecttime'] / 60);
+                    $classwaittime = round($row['expecttime']);
                     echo "<tr>";
                     echo "<td data-label='クラス' class='txt'>" . htmlspecialchars($row['classname']) . "</td>";
                     echo "<td data-label='待ち時間' class='txt'>" . htmlspecialchars($classwaittime) . "分</td>";
