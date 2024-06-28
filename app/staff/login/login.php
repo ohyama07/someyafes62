@@ -1,45 +1,67 @@
 <?php
 require_once 'config.php';
-
 $err = '';
-$errorpsw = "パスワードが違います";
-$errorclass = "クラスが違います";
 
+if (isset($_COOKIE['class'])) {
+    header('Location: index.php');
+    exit;
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $class = $_POST['userid'];
+    $user_password = $_POST['password'];
+
     try {
         $pdo = new PDO($dsn, $user, $password);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $stmt = $pdo->prepare('SELECT capacity FROM class WHERE classname = :class');
+        $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
+            $capacity = $row['capacity'];
+        } else {
+            echo "定員を取得できませんでした";
+        }
     } catch (PDOException $e) {
         echo $e->getMessage();
     }
 
-    session_start();
-    $userid = $_POST['userid'];
-    $password = $_POST['password'];
+    try {
+        $stmt = $pdo->prepare('SELECT * FROM users WHERE userid = :class');
+        $stmt->bindValue(':class', $class, PDO::PARAM_STR);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        echo $e->getMessage();
+    }
 
-    $stmt = $pdo->prepare('SELECT * FROM users WHERE userid = :userid');
-    $stmt->bindValue(':userid', $userid, PDO::PARAM_STR);
-    $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$row) {
 
         $err = "ユーザーが見つかりません";
 
-    } elseif ($row['password'] !== $password) {
+    } elseif ($row['password'] !== $user_password) {
 
         $err = "パスワードが違います";
 
     } else {
+        setcookie("class", $row['username'], time() + 86400, "/"); // 有効期限は1日
+        if ($class === "2年4組") {
+            header('Location: twofour.php');
+            exit;
+        } elseif ($capacity !== 0) {
+            header('Location: addCapacity.php');
+            exit;
+        } else {
+            header('Location: index.php');
+            exit;
+        }
 
-        $_SESSION['userid'] = $row['userid'];
-        $_SESSION['password'] = $row['password'];
 
-        header('Location: ./', 303);
-        echo "ログイン成功";
-        exit();
 
     }
+
+
 }
 ?>
 <!DOCTYPE html>
@@ -111,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 
 <body>
-    <form action="" method="POST" id="submit">
+    <form action="login.php" method="POST" id="submit">
         <h1>ログインページ</h1>
         <?php if ($err) { ?>
             <p class="error"><?= $err ?></p>

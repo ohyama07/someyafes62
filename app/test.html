@@ -1,84 +1,78 @@
-<?php
-require_once 'config.php';
-include 'idGenerate.php';
-
-
-if (!isset($_COOKIE['userid']) || !isset($_COOKIE['seeable_id'])) {
-    list($seeable_id, $userid) = toStudentEntranceId();
-    setcookie('userid', $userid, time() + 86400, "/");
-    setcookie('seeable_id', $seeable_id, time() + 86400, "/");
-
-    header('Location:' . $_SERVER['PHP_SELF']);
-    exit;
-}
-
-$userid = $_COOKIE['userid'];
-$seeable_id = $_COOKIE['seeable_id'];
-
-//MEMO 出来てるはず->　QRコードのデータもCOOKIEにしようか。
-?>
 <!DOCTYPE html>
 <html lang="ja">
 
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>生徒用</title>
+    <title>QRコード生成</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.js"></script>
-    <style>
-        .wrap {
+    <style> body {
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
             align-items: center;
+            justify-content: center;
+            height: 100vh; /* 画面全体の高さに合わせるために追加 */
+            margin: 0; /* デフォルトのマージンを削除 */
+            font-family: Arial, sans-serif; /* フォントの指定 */
+        }
+
+        #container {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            width: 100%; /* コンテンツの幅を100%にする */
+            max-width: 800px; /* 最大幅を設定（必要に応じて調整） */
+            padding: 20px; /* コンテナの内側のパディング */
+        }
+
+        #qr {
+            margin-right: 20px; /* QRコードの右側に隙間を設ける */
+        }
+
+        #goForm {
+            margin-left: 20px; /* フォームの左側に隙間を設ける */
         }
 
         #go {
             background-color: white;
             border: 1px solid black;
             box-shadow: 1px 2px 3px black;
-            height: 400px;
-            width: 50px;
-            /* 幅を広げて表示 */
+            height: 400px; /* ボタンの高さ */
+            width: 50px; /* ボタンの幅 */
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-left: 20px;
-            position: relative;
-            writing-mode: vertical-rl;
+            writing-mode: vertical-rl; /* ボタンのテキストの方向 */
             font-size: medium;
+            transition: transform 0.3s ease; /* ホバー時のアニメーション */
         }
 
         #right {
             font-size: 30px;
             display: inline-block;
-            transition: transform 0.3s ease;
             margin: 10px;
-            margin-right: 20px;
-        }
-
-        #qrText {
-            text-align: center;
         }
     </style>
 </head>
 
 <body>
     <h1>QRコード生成</h1>
-    <div class="wrap">
-        <div class="qrblock"></div>
-        <div id="from-cookie"></div>
-        <div id="qrOutput"></div>
-        <div>
-            <p id="qrString"></p>
-        </div>
-        <canvas id="qr"></canvas>
-        <div><img id="newImg"></div>
-        <form action="../../main/index.php" method="POST" id="goForm">
-            <button type="submit" id="go">メインページへ <span id="right">^</span></button>
-        </form>
+    <div class="qrblock"></div>
+    <div id="from-cookie"></div>
+    <div id="qrOutput"></div>
+    <div>
+        <p id="qrString"></p>
     </div>
+    <canvas id="qr"></canvas>
     <p id="qrText"></p>
+    <div><img id="newImg"></div>
+    </div>
+    <form action="../../main/index.php" id="goForm">
+        <button type="submit" id="go">メインページへ <span id="right">^</span></button>
+    </form>
+
     <script>
         let cookie = document.cookie;
         let query = 0;
@@ -130,17 +124,11 @@ $seeable_id = $_COOKIE['seeable_id'];
                 }, 700);
             });
 
+
         });
 
     </script>
-    <?php
-    //echo "3秒後にリダイレクトします";
-    /*echo '<script>
-    setTimeout(function(){
-        window.location.href = "../../main/index.php";
-    }, 1500);
-    </script>';*/
-    ?>
+
     <style>
         /*#qrOutput {
         display: none;

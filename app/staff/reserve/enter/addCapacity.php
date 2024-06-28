@@ -1,6 +1,9 @@
 <?php
 require_once 'config.php';
-$class = '3年1組';//FIXME 応急処置
+
+
+$class = $_COOKIE['class'];
+
 
 try {
     $pdo = new PDO($dsn, $user, $password);
@@ -13,4 +16,11 @@ try {
     exit;
 }
 echo "定員を1追加しました";
+
+echo "<br>3秒後に元のページに戻ります";
+echo '<script>
+        setTimeout(function(){
+            window.location.href = "enter.php";
+        }, 3000);
+        </script>';
 

@@ -1,29 +1,82 @@
 <?php
-include 'qrcode.php';
+include '../../../staff/entrance/idGenerate.php';
+require_once 'config.php';
+
+if (!isset($_COOKIE['userid']) || !isset($_COOKIE['seeable_id'])) {
+    list($seeable_id, $userid) = toEntranceId();
+    setcookie('userid', $userid, time() + 86400, "/");
+    setcookie('seeable_id', $seeable_id, time() + 86400, "/");
+
+    header('Location:' . $_SERVER['PHP_SELF']);
+    exit;
+}
+
+$userid = $_COOKIE['userid'];
+$seeable_id = $_COOKIE['seeable_id'];
 ?>
 <!DOCTYPE html>
 <html lang="ja">
 
 <head>
     <meta charset="utf-8">
-    <title>making_qrcode</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>来場者用</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.js"></script>
+    <style>
+        .wrap {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #go {
+            background-color: white;
+            border: 1px solid black;
+            box-shadow: 1px 2px 3px black;
+            height: 400px;
+            width: 50px;
+            /* 幅を広げて表示 */
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 20px;
+            position: relative;
+            writing-mode: vertical-rl;
+            font-size: medium;
+        }
+
+        #right {
+            font-size: 30px;
+            display: inline-block;
+            transition: transform 0.3s ease;
+            margin: 10px;
+            margin-right: 20px;
+        }
+
+        #qrText {
+            text-align: center;
+        }
+    </style>
 </head>
 
 <body>
     <h1>QRコード生成</h1>
-    <div class="qrblock"></div>
-    <div id="from-cookie"></div>
-    <div id="qrOutput"></div>
-    <div>
-        <p id="qrString"></p>
+    <div class="wrap">
+        <div class="qrblock"></div>
+        <div id="from-cookie"></div>
+        <div id="qrOutput"></div>
+        <div>
+            <p id="qrString"></p>
+        </div>
+        <canvas id="qr"></canvas>
+        <div><img id="newImg"></div>
+        <form action="../../main/index.php" method="POST" id="goForm">
+            <button type="submit" id="go">メインページへ <span id="right">^</span></button>
+        </form>
     </div>
-    <canvas id="qr"></canvas>
     <p id="qrText"></p>
-    <div><img id="newImg"></div>
-    </div>
     <script>
-        let qrcode = "<?php makingQrcode() ?>";
         let cookie = document.cookie;
         let query = 0;
         let userid = "<?php echo $userid ?>";
@@ -35,7 +88,7 @@ include 'qrcode.php';
             });
 
             //ID出力用コード
-            document.getElementById('qrText').textContent = `あなたのIDは 0<?php echo $seeable_id['id'] ?> です`;
+            document.getElementById('qrText').textContent = `あなたのIDは <?php echo $seeable_id ?> です`;
             qr.background = '#FFF';
             qr.backgroundAlpha = 0.8;
             qr.foreground = '#000000';
@@ -46,11 +99,44 @@ include 'qrcode.php';
             let cvs = userid;
             let png = cvs.toDataURL();
             document.getElementById("newImg").src = png;
-            /* ローカルストレージに保存
-            localStorage.setItem('query', query);*/
 
+            // PNGをサーバーに送信
+            fetch('save_session.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ png: png })
+            })
+                .then(response => response.text())
+                .then(data => {
+                    console.log('Success:', data);
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+
+            document.getElementById('go').addEventListener('click', (event) => {
+                event.preventDefault(); // デフォルトのフォーム送信を防止
+                const rightSpan = document.getElementById('right');
+                rightSpan.style.transform = 'translateX(40px)'; // 右に40px移動
+
+                // 2秒後にフォームを送信
+                setTimeout(() => {
+                    document.getElementById('goForm').submit();
+                }, 700);
+            });
         });
+
     </script>
+    <?php
+    //echo "3秒後にリダイレクトします";
+    /*echo '<script>
+    setTimeout(function(){
+        window.location.href = "../../main/index.php";
+    }, 1500);
+    </script>';*/
+    ?>
     <style>
         /*#qrOutput {
         display: none;
@@ -92,9 +178,6 @@ include 'qrcode.php';
             justify-content: space-around;
             padding: 20px;
         }
-
-        @media (max-width: 500px) {}
-        /*FIXME ここ中途半端 */
     </style>
 </body>
 

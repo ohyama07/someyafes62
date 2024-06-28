@@ -1,37 +1,15 @@
-<?php
-require_once 'config.php';
-include 'idGenerate.php';
-
-
-if (!isset($_COOKIE['userid']) || !isset($_COOKIE['seeable_id'])) {
-    list($seeable_id, $userid) = toStudentEntranceId();
-    setcookie('userid', $userid, time() + 86400, "/");
-    setcookie('seeable_id', $seeable_id, time() + 86400, "/");
-
-    header('Location:' . $_SERVER['PHP_SELF']);
-    exit;
-}
-
-$userid = $_COOKIE['userid'];
-$seeable_id = $_COOKIE['seeable_id'];
-
-//MEMO 出来てるはず->　QRコードのデータもCOOKIEにしようか。
-?>
 <!DOCTYPE html>
 <html lang="ja">
 
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>生徒用</title>
+    <title>QRコード生成</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.js"></script>
     <style>
         .wrap {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            display:flex;
         }
-
         #go {
             background-color: white;
             border: 1px solid black;
@@ -41,7 +19,7 @@ $seeable_id = $_COOKIE['seeable_id'];
             /* 幅を広げて表示 */
             cursor: pointer;
             display: flex;
-            align-items: center;
+            align-items: right;
             justify-content: center;
             margin-left: 20px;
             position: relative;
@@ -56,10 +34,6 @@ $seeable_id = $_COOKIE['seeable_id'];
             margin: 10px;
             margin-right: 20px;
         }
-
-        #qrText {
-            text-align: center;
-        }
     </style>
 </head>
 
@@ -72,13 +46,14 @@ $seeable_id = $_COOKIE['seeable_id'];
         <div>
             <p id="qrString"></p>
         </div>
+        
         <canvas id="qr"></canvas>
+        <p id="qrText"></p>
         <div><img id="newImg"></div>
-        <form action="../../main/index.php" method="POST" id="goForm">
-            <button type="submit" id="go">メインページへ <span id="right">^</span></button>
-        </form>
+        
     </div>
-    <p id="qrText"></p>
+    
+    </div>
     <script>
         let cookie = document.cookie;
         let query = 0;
@@ -129,7 +104,6 @@ $seeable_id = $_COOKIE['seeable_id'];
                     document.getElementById('goForm').submit();
                 }, 700);
             });
-
         });
 
     </script>
